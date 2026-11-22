@@ -16,7 +16,7 @@
         })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" media="print" onload="this.media='all'">
     <style>
         :root {
             --bg: #F6FAF7; --surface: #FFFFFF; --surface-2: #F0F5F2;
@@ -26,7 +26,9 @@
             --danger: #9A2A1F; --danger-soft: #FBE5E1;
             --warn-bg: #FFF3D1; --warn-line: #EBD9A0; --warn-ink: #6B4300;
             --accent-ink: #075239; --accent-line: #BFE0D0; --placeholder: #8A9990; --dash: #9FB3A8; --tile: #EEF2F0;
-            --sans: 'IBM Plex Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
+            /* 글꼴: 본문은 고운돋움, 제목·버튼·점수 등 강조는 주아체 (둘 다 굵기가 하나라서 '굵게' 대신 주아체로 강조한다) */
+            --sans: 'Gowun Dodum', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
+            --head: 'Jua', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
         }
         /* 다크 모드: 머리글의 버튼으로 바꾼다. 기본은 밝은 모드 (엑셀 미리보기의 종이는 흰색 그대로) */
         :root[data-theme="dark"] {
@@ -43,6 +45,11 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.55; -webkit-font-smoothing: antialiased; }
         input, select, textarea, button { font-family: inherit; }
+        /* 굵기가 하나뿐인 글꼴을 브라우저가 억지로 굵게 만들지 않게 한다 (글꼴을 못 받아 맑은 고딕으로 보일 때는 원래 굵기가 그대로 쓰임) */
+        .app { font-synthesis: none; }
+        .app-title, .form-btn, .btn, .step-heading, .sub-title, .item-number, .step-tab.current .step-name,
+        .score-item:last-child, .foot-scores strong, .bonus-guide-title, .bonus-tile-label, .bonus-saved-header,
+        .bonus-summary-score, .preview-head h2, .form-group input[readonly], .alert strong, .step-lead strong, strong, b { font-family: var(--head); }
         .app { min-height: 100vh; display: flex; flex-direction: column; }
         /* 머리글 */
         .app-header { padding: 20px 40px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
@@ -197,7 +204,7 @@
         .preview-size-btn { min-height: 38px; padding: 0 14px; font-size: 14px; }
         .preview.expanded { position: fixed; top: 20px; bottom: 20px; left: 50%; transform: translateX(-50%); width: min(1180px, calc(100vw - 40px)); max-height: none; z-index: 300; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 20px; padding: 20px; box-shadow: 0 0 0 100vmax rgba(20, 32, 27, 0.45), 0 24px 60px rgba(20, 32, 27, 0.3); }
         .preview-sheet.xl-wrap { padding: 12px; display: block; overflow: hidden; }
-        .xl-sheet { border-collapse: collapse; table-layout: fixed; background: #FFFFFF; color: #000000; font-family: 'HY신명조', '바탕', Batang, serif; line-height: 1.25; }
+        .xl-sheet { border-collapse: collapse; table-layout: fixed; background: #FFFFFF; color: #000000; font-family: 'HY신명조', '바탕', Batang, serif; line-height: 1.25; font-synthesis: weight style; }
         .preview > * { flex: none; }
         .xl-zoom { width: fit-content; margin: 0 auto; }
         .xl-sheet td { padding: 0 2px; overflow: hidden; }
