@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2027학년도 관내전보 내신자 조사서 도우미</title>
     <script id="themeInit">
-        // 화면이 그려지기 전에 밝은/어두운 모드를 정한다: 직접 고른 값이 있으면 그것, 없으면 컴퓨터 설정
+        // 화면이 그려지기 전에 밝은/어두운 모드를 정한다: 기본은 밝은 모드, 다크 모드를 직접 골랐을 때만 다크 모드
         (function() {
             var theme = 'light';
             try {
                 var saved = localStorage.getItem('transferTheme');
-                if (saved === 'dark' || saved === 'light') theme = saved;
-                else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
+                if (saved === 'dark') theme = 'dark';
             } catch (error) {}
             document.documentElement.dataset.theme = theme;
         })();
@@ -29,7 +28,7 @@
             --accent-ink: #075239; --accent-line: #BFE0D0; --placeholder: #8A9990; --dash: #9FB3A8; --tile: #EEF2F0;
             --sans: 'IBM Plex Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
         }
-        /* 다크 모드: 머리글의 버튼으로 바꾸고, 고르지 않았으면 컴퓨터 설정을 따른다 (엑셀 미리보기의 종이는 흰색 그대로) */
+        /* 다크 모드: 머리글의 버튼으로 바꾼다. 기본은 밝은 모드 (엑셀 미리보기의 종이는 흰색 그대로) */
         :root[data-theme="dark"] {
             color-scheme: dark;
             --bg: #101714; --surface: #18221E; --surface-2: #212D28;
