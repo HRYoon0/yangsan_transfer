@@ -654,11 +654,14 @@
             sheet.getCell(spec.titleRow, 1).value = roster.title;
             sheet.getCell(spec.titleRow + 1, 1).value = roster.principal;
             spec.merges.forEach(range => sheet.mergeCellsWithoutStyle(range));      // 서식은 건드리지 않고 병합만
-            // 자료 줄: 원본은 줄에 따라 서식과 높이가 조금씩 달라서, 그 줄의 것을 찾아 쓴다
+            // 자료 줄: 높이는 원본처럼 줄마다 찾아 쓴다.
+            // 서식은 첫 줄 것을 끝까지 쓴다. 원본 서열명부·과원명부는 26번째 줄(34행)부터 글꼴이 굴림체에서 맑은 고딕으로 바뀌는데,
+            // 한 명부 안에서 글꼴이 달라지지 않도록 굴림체로 통일했다. (그 밖의 서식은 34행 앞뒤가 같다)
             const forRow = (list, row) => list.reduce((found, item) => (item[0] <= row ? item[1] : found), list[0][1]);
+            const rowStyle = spec.rowStyles[0][1];
             for (let row = spec.first; row <= lastRow; row++) {
                 const line = roster.lines[row - spec.first] || [];
-                const rowStyle = forRow(spec.rowStyles, row), height = forRow(spec.rowHeights, row);
+                const height = forRow(spec.rowHeights, row);
                 sheet.getRow(row).height = height;
                 for (let c = 1; c <= spec.cols; c++) {
                     const cell = sheet.getCell(row, c);
