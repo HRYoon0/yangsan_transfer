@@ -173,6 +173,13 @@
         .foot-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 15px; color: var(--ink-2); }
         .foot-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
         .foot-buttons .btn { min-height: 52px; padding: 0 24px; font-size: 16px; }
+        /* 들어가기 전 비밀번호 화면 */
+        .gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .gate-card { width: min(440px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 30px 28px; display: flex; flex-direction: column; gap: 14px; }
+        .gate-title { font-family: var(--head); font-size: 22px; letter-spacing: -0.01em; }
+        .gate-lead { font-size: 15px; color: var(--ink-2); }
+        .gate-error { font-size: 14px; color: var(--danger); min-height: 21px; }
+        .gate-back { font-size: 14px; color: var(--accent-ink); align-self: flex-start; }
         /* 조사서 인쇄: 인쇄할 때는 화면 대신 조사서만 한 장에 하나씩 찍는다 */
         #printArea { display: none; }
         @media print {
@@ -195,7 +202,20 @@
     </style>
 </head>
 <body>
-    <div class="app">
+    <div class="gate" id="gate">
+        <form class="gate-card" onsubmit="enterWithPassword(event)">
+            <div class="gate-title">학교 관리자 취합 도우미</div>
+            <p class="gate-lead">교감 선생님용 화면입니다. 비밀번호를 입력해 주세요.</p>
+            <div class="field">
+                <label for="gateInput">비밀번호</label>
+                <input type="password" id="gateInput" autocomplete="off" oninput="document.getElementById('gateError').textContent = ''">
+            </div>
+            <div class="gate-error" id="gateError" aria-live="polite"></div>
+            <button type="submit" class="btn btn-primary">들어가기</button>
+            <a class="gate-back" href="transfer_application.html">내신자 조사서 도우미로 돌아가기</a>
+        </form>
+    </div>
+    <div class="app" id="app" hidden>
         <div class="top-note">
             <p>2027학년도 양산교육지원청 교육공무원 인사관리기준에 따른 내신자 조사서를 취합합니다.</p>
             <p>작성자: 황산초등학교 윤희류</p>
@@ -1356,9 +1376,64 @@
             renderPreview();
         }
 
+        // ───────── 들어가기 전 비밀번호 확인 ─────────
+        // 교감 선생님용 화면이라 비밀번호를 묻는다. 코드에는 비밀번호를 적지 않고 해시값만 둔다.
+        // 맞게 입력했다는 사실도 어디에 저장하지 않으므로, 화면을 새로 열 때마다 다시 묻는다.
+        // (서버가 없는 페이지라 완전한 잠금은 아니다. 조사서 내용은 파일을 올리기 전까지 이 화면 어디에도 없다.)
+        const GATE_HASH = '47a5fa66a770dd3765abc71e7766e9a3fbd595b74884d53793debc228b27c89d';
+        function sha256Hex(text) {
+            const bytes = new TextEncoder().encode(text);
+            const K = [], H = [];
+            const frac = x => ((x - Math.floor(x)) * 4294967296) | 0;
+            for (let n = 2, count = 0; count < 64; n++) {
+                let prime = true;
+                for (let d = 2; d * d <= n; d++) if (n % d === 0) { prime = false; break; }
+                if (!prime) continue;
+                if (count < 8) H[count] = frac(Math.sqrt(n));
+                K[count++] = frac(Math.cbrt(n));
+            }
+            const length = bytes.length, total = ((length + 9 + 63) >> 6) << 6;
+            const data = new Uint8Array(total);
+            data.set(bytes); data[length] = 0x80;
+            const view = new DataView(data.buffer);
+            view.setUint32(total - 8, Math.floor(length / 536870912)); view.setUint32(total - 4, (length << 3) >>> 0);
+            const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+            const w = new Int32Array(64);
+            for (let offset = 0; offset < total; offset += 64) {
+                for (let i = 0; i < 16; i++) w[i] = view.getInt32(offset + i * 4);
+                for (let i = 16; i < 64; i++) {
+                    const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+                    const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+                    w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+                }
+                let [a, b, c, d, e, f, g, h] = H;
+                for (let i = 0; i < 64; i++) {
+                    const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+                    const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+                    h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+                }
+                [a, b, c, d, e, f, g, h].forEach((value, i) => { H[i] = (H[i] + value) | 0; });
+            }
+            return H.map(value => (value >>> 0).toString(16).padStart(8, '0')).join('');
+        }
+        function enterWithPassword(event) {
+            event.preventDefault();
+            const input = document.getElementById('gateInput');
+            if (sha256Hex('yangsan_transfer/manager:' + input.value) !== GATE_HASH) {
+                document.getElementById('gateError').textContent = '비밀번호가 맞지 않습니다.';
+                input.select();
+                return;
+            }
+            input.value = '';
+            document.getElementById('gate').hidden = true;
+            document.getElementById('app').hidden = false;
+            goToStep(currentStep);      // 화면이 보인 뒤에 미리보기 크기를 다시 맞춘다
+        }
+
         // ───────── 시작 ─────────
         document.addEventListener('DOMContentLoaded', () => {
             updateThemeButton();
+            document.getElementById('gateInput').focus();
             const zone = document.getElementById('dropzone');
             ['dragenter', 'dragover'].forEach(type => zone.addEventListener(type, event => { event.preventDefault(); zone.classList.add('over'); }));
             ['dragleave', 'drop'].forEach(type => zone.addEventListener(type, event => { event.preventDefault(); zone.classList.remove('over'); }));
