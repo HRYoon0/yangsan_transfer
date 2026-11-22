@@ -178,9 +178,6 @@
         .gate-card { width: min(440px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 30px 28px; display: flex; flex-direction: column; gap: 14px; }
         .gate-title { font-family: var(--head); font-size: 22px; letter-spacing: -0.01em; }
         .gate-lead { font-size: 15px; color: var(--ink-2); }
-        .gate-input-row { display: flex; gap: 8px; }
-        .gate-input-row input { flex: 1; min-width: 0; }
-        .gate-input-row .btn { flex: none; min-height: 46px; min-width: 76px; padding: 0 14px; }
         .gate-error { font-size: 14px; color: var(--danger); min-height: 21px; }
         .gate-back { font-size: 14px; color: var(--accent-ink); align-self: flex-start; }
         /* 조사서 인쇄: 인쇄할 때는 화면 대신 조사서만 한 장에 하나씩 찍는다 */
@@ -211,10 +208,7 @@
             <p class="gate-lead">교감 선생님용 화면입니다. 비밀번호를 입력해 주세요.</p>
             <div class="field">
                 <label for="gateInput">비밀번호</label>
-                <div class="gate-input-row">
-                    <input type="password" id="gateInput" autocomplete="off" oninput="document.getElementById('gateError').textContent = ''">
-                    <button type="button" class="btn btn-secondary" id="gateShowBtn" onclick="toggleGatePassword()" aria-pressed="false" aria-label="입력한 비밀번호 보기">보기</button>
-                </div>
+                <input type="password" id="gateInput" autocomplete="off" oninput="document.getElementById('gateError').textContent = ''">
             </div>
             <div class="gate-error" id="gateError" aria-live="polite"></div>
             <button type="submit" class="btn btn-primary">들어가기</button>
@@ -1422,16 +1416,6 @@
             }
             return H.map(value => (value >>> 0).toString(16).padStart(8, '0')).join('');
         }
-        // 입력한 비밀번호를 글자로 보여 주거나 다시 가린다
-        function toggleGatePassword(forceHide) {
-            const input = document.getElementById('gateInput'), button = document.getElementById('gateShowBtn');
-            const show = !forceHide && input.type === 'password';
-            input.type = show ? 'text' : 'password';
-            button.textContent = show ? '숨기기' : '보기';
-            button.setAttribute('aria-pressed', show ? 'true' : 'false');
-            button.setAttribute('aria-label', show ? '입력한 비밀번호 숨기기' : '입력한 비밀번호 보기');
-            if (!forceHide) input.focus();
-        }
         function enterWithPassword(event) {
             event.preventDefault();
             const input = document.getElementById('gateInput');
@@ -1441,7 +1425,6 @@
                 return;
             }
             input.value = '';
-            toggleGatePassword(true);
             document.getElementById('gate').hidden = true;
             document.getElementById('app').hidden = false;
             goToStep(currentStep);      // 화면이 보인 뒤에 미리보기 크기를 다시 맞춘다
