@@ -536,6 +536,12 @@
             list.forEach(record => { if (record.f.school !== '') count[record.f.school] = (count[record.f.school] || 0) + 1; });
             return Object.keys(count).sort((a, b) => count[b] - count[a])[0] || '';
         }
+        // 원동초와 이천분교는 한 학교로 본다: 조사서 양식의 '학교장' 수식이 이천을 원동초등학교장으로 적고,
+        // 작년에도 원동초에서 이천분교 조사서를 함께 취합해 냈다. (원본 취합 엑셀은 현임교를 견주어 보지 않는다)
+        const WONDONG = ['원동', '이천'];
+        function sameSchool(a, b, type) {
+            return a === b || (familyOf(type) === 'elementary' && WONDONG.includes(a) && WONDONG.includes(b));
+        }
         function recheck() {
             const people = {};
             records.forEach(record => { if (record.f.name !== '') (people[personKey(record)] = people[personKey(record)] || []).push(record); });
@@ -543,7 +549,7 @@
                 record.issues = record.own.slice();
                 if (record.f.name !== '' && people[personKey(record)].length > 1) record.issues.push('같은 사람의 조사서가 두 번 올라옴 (옛 파일을 빼 주세요)');
                 const school = majoritySchool(groupRecords(record.type));
-                if (record.f.school !== '' && school && record.f.school !== school) record.issues.push(`현임교가 다른 조사서(${school})와 다름`);
+                if (record.f.school !== '' && school && !sameSchool(record.f.school, school, record.type)) record.issues.push(`현임교가 다른 조사서(${school})와 다름`);
             });
         }
 
@@ -583,7 +589,9 @@
             return school + '초';
         }
         function settingOf(type) {
-            const school = String(majoritySchool(familyRecords(familyOf(type))));
+            const list = familyRecords(familyOf(type));
+            let school = String(majoritySchool(list));
+            if (familyOf(type) === 'elementary' && school === '이천' && list.some(record => record.f.school === '원동')) school = '원동';      // 원동초와 이천분교가 함께면 원동초 이름으로
             const custom = groupSettings[familyOf(type)] || {};
             return {
                 principal: custom.principal !== undefined ? custom.principal : defaultPrincipal(type, school),
