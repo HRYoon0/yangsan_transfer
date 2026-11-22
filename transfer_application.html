@@ -60,9 +60,10 @@
         .form-btn:hover { background: var(--surface); color: var(--ink); }
         .form-btn.active { background: var(--accent); color: #FFFFFF; }
         .form-btn:focus-visible { outline: 3px solid var(--accent-ring); outline-offset: 2px; }
-        /* 제목 아래 한 줄: 작성 기준일은 왼쪽 끝, 단추들은 오른쪽 끝 */
-        .app-header-side { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: flex-end; font-size: 14px; color: var(--ink-2); }
-        .app-header-side > span:first-child { margin-right: auto; }
+        /* 작성 기준일은 제목 바로 오른쪽에, 단추들은 오른쪽 끝에 (줄이 바뀌어 아래로 내려가도 오른쪽에 붙인다) */
+        .app-brand { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }      /* 제목과 작성 기준일은 한 덩어리로 움직인다 */
+        .app-date { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+        .app-header-side { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: flex-end; margin-left: auto; font-size: 14px; color: var(--ink-2); }
         .header-link { color: var(--accent-ink); font-weight: 600; }
         .theme-toggle { min-height: 44px; }
         .header-file-btn { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
@@ -268,14 +269,16 @@
             <p class="privacy-note" title="입력한 내용은 서버로 보내지 않고 브라우저에도 저장하지 않습니다. 창을 닫거나 새로고침하면 사라지고, 내려받은 엑셀 파일만 이 컴퓨터에 남습니다."><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"></path></svg>입력한 개인정보는 어디에도 전송·저장되지 않습니다</p>
         </div>
         <header class="app-header">
-            <div class="app-title">2027학년도 관내전보 내신자 조사서 도우미</div>
+            <div class="app-brand">
+                <div class="app-title">2027학년도 관내전보 내신자 조사서 도우미</div>
+                <span class="app-date">작성 기준일 2027. 2. 28.</span>
+            </div>
             <div class="form-switch" role="group" aria-label="조사서 종류">
                 <button type="button" class="form-btn" data-form="elementary" onclick="switchForm('elementary')">초등-초등,특수,상담,사서,보건교사</button>
                 <button type="button" class="form-btn" data-form="nutrition" onclick="switchForm('nutrition')">초등-영양교사</button>
                 <button type="button" class="form-btn" data-form="kindergarten" onclick="switchForm('kindergarten')">유치원-유치원,보건,특수교사</button>
             </div>
             <div class="app-header-side">
-                <span>작성 기준일 2027. 2. 28.</span>
                 <a class="btn btn-secondary header-file-btn" href="manual_helper.pdf" target="_blank" rel="noopener" title="내신자 조사서 도우미 사용 방법 설명서(PDF)를 새 창으로 엽니다">사용 방법</a>
                 <a class="btn btn-secondary header-file-btn" href="manager.html" title="교감(원감) 선생님이 조사서를 모아 명부와 제출파일을 만드는 화면">학교 관리자 취합</a>
                 <a class="btn btn-secondary header-file-btn" href="insa_standard_2027.pdf" download="2027학년도 양산교육지원청 교육공무원 인사관리기준(유·초등).pdf">인사관리기준 파일</a>
