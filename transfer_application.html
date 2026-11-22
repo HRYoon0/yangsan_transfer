@@ -315,7 +315,7 @@
                             <option value="초빙">초빙</option>
                             <option value="비정기">비정기</option>
                         </select>
-                        <div id="transferTypeNote" class="help-text">과원 대상자는 "만기"를 고르고 1~3희망을 모두 적습니다.</div>
+                        <div id="transferTypeNote" class="help-text">과원 대상자는 "만기"를 고르고 1~3희망을 모두 적습니다.<br>비고란에도 과원 순서를 적어 주세요. <span style="white-space: nowrap">(예: 과원1)</span></div>
                     </div>
                     <div class="form-group">
                         <label>1희망 <span class="required">*</span></label>
@@ -4936,9 +4936,9 @@
             //  → 화면에서는 '우선(희망)'(1희망만)과 '우선(만기)'(3희망까지)로 나눠 고르게 하고, 조사서에는 둘 다 '우선'으로 적는다.
             const note = document.getElementById('transferTypeNote');
             if (note) {
-                note.textContent = transferType === '우선(만기)' ? '우선 대상자이면서 만기자인 경우입니다. 2희망·3희망 학교까지 적습니다. 조사서의 전보구분에는 "우선"으로 들어갑니다.'
+                note.innerHTML = transferType === '우선(만기)' ? '우선 대상자이면서 만기자인 경우입니다. 2희망·3희망 학교까지 적습니다. 조사서의 전보구분에는 "우선"으로 들어갑니다.'
                     : (transferType === '우선(희망)' ? '우선 대상자이고 만기자가 아닌 경우입니다. 1희망만 적습니다. 조사서의 전보구분에는 "우선"으로 들어갑니다.'
-                    : '과원 대상자는 "만기"를 고르고 1~3희망을 모두 적습니다.');      // 우선이 아닐 때는 과원 안내 (양식의 작성 방법)
+                    : '과원 대상자는 "만기"를 고르고 1~3희망을 모두 적습니다.<br>비고란에도 과원 순서를 적어 주세요. <span style="white-space: nowrap">(예: 과원1)</span>');      // 우선이 아닐 때는 과원 안내 (양식의 작성 방법)
             }
             // 희망, 우선(희망), 초빙, 비정기는 1희망만 선택 가능
             if (['희망', '우선(희망)', '초빙', '비정기'].includes(transferType)) {
