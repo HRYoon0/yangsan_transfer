@@ -10,6 +10,10 @@
     python tools/build_template.py template_nutrition.xlsx template_nutrition_career6.xlsx 6 career-only
     python tools/build_template.py template_kindergarten.xlsx template_kindergarten_career6.xlsx 6 career-only
 
+영양교사·유치원 양식에 숨겨져 있던 교육실습협력학교 가산점 흔적을 지울 때는 끝에 remove-practice 를 붙인다(제자리에서 고침).
+
+    python tools/build_template.py template_nutrition.xlsx template_nutrition.xlsx 5 remove-practice
+
 실제 편집은 build_template.ps1 이 엑셀을 구동해서 한다(서식·그림·인쇄 설정 보존).
 '내신조사서' 시트에는 암호 보호가 걸려 있어 엑셀이 편집을 거부하므로,
   1) 임시 사본에서 시트 보호 설정만 잠시 떼어 내고
@@ -39,7 +43,7 @@ def rewrite(src, dst, edit):
             zout.writestr(info, data)
 
 
-def main(source, destination, career_rows=5, career_only=False):
+def main(source, destination, career_rows=5, career_only=False, script=None):
     here = os.path.dirname(os.path.abspath(__file__))
     work = tempfile.mkdtemp(prefix='naesin_template_')
     try:
@@ -54,7 +58,7 @@ def main(source, destination, career_rows=5, career_only=False):
         rewrite(source, unprotected, strip)
 
         # career_only: 영양교사·유치원 양식처럼 경력 줄만 늘리는 경우 (초등 양식 전용 변환은 하지 않음)
-        script = 'extend_career_rows.ps1' if career_only else 'build_template.ps1'
+        script = script or ('extend_career_rows.ps1' if career_only else 'build_template.ps1')
         subprocess.run(['pwsh', '-NoProfile', '-File', os.path.join(here, script),
                         '-Source', unprotected, '-Destination', converted,
                         '-CareerRows', str(career_rows)], check=True, timeout=300)
@@ -75,4 +79,5 @@ def main(source, destination, career_rows=5, career_only=False):
 
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 5,
-         career_only=len(sys.argv) > 4 and sys.argv[4] == 'career-only')
+         career_only=len(sys.argv) > 4 and sys.argv[4] == 'career-only',
+         script='remove_practice_bonus.ps1' if len(sys.argv) > 4 and sys.argv[4] == 'remove-practice' else None)
