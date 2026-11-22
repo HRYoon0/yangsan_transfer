@@ -4915,6 +4915,9 @@
                 updateIntegratedOptions();
             } else {
                 section.classList.add('hidden');
+                // 1희망이 통합이 아니게 되면 골라 둔 통합 희망을 지운다 (숨은 칸의 값이 엑셀에 들어가지 않게)
+                ['integrated1', 'integrated2', 'integrated3'].forEach(id => { document.getElementById(id).value = ''; });
+                updateIntegratedOptions();
             }
         }
 
@@ -10425,9 +10428,10 @@
                 firstChoice: document.getElementById('firstChoice').value,
                 secondChoice: document.getElementById('secondChoice').value,
                 thirdChoice: document.getElementById('thirdChoice').value,
-                integrated1: document.getElementById('integrated1').value,
-                integrated2: document.getElementById('integrated2').value,
-                integrated3: document.getElementById('integrated3').value,
+                // 통합 희망은 1희망이 '통합'일 때만 적는다
+                integrated1: document.getElementById('firstChoice').value === '통합' ? document.getElementById('integrated1').value : '',
+                integrated2: document.getElementById('firstChoice').value === '통합' ? document.getElementById('integrated2').value : '',
+                integrated3: document.getElementById('firstChoice').value === '통합' ? document.getElementById('integrated3').value : '',
                 careers: careers,
                 bonuses: bonuses,
                 promotionRegion: currentForm === 'nutrition' ? document.getElementById('promotionRegion').value.trim() : '',
