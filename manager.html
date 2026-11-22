@@ -42,6 +42,7 @@
             --warn-bg: #352C12; --warn-line: #5C4B1D; --warn-ink: #EFD58F; --dash: #56695F;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        [hidden] { display: none !important; }
         body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.55; -webkit-font-smoothing: antialiased; }
         input, select, textarea, button { font-family: inherit; }
         .app { min-height: 100vh; display: flex; flex-direction: column; font-synthesis: none; }
@@ -68,6 +69,8 @@
         .step-heading { font-size: 22px; letter-spacing: -0.01em; }
         .step-lead { color: var(--ink-2); font-size: 15px; }
         .step-head .spacer { margin-left: auto; }
+        .card-body { display: flex; flex-direction: column; gap: 16px; }
+        .tab-label { font-family: var(--head); font-size: 14px; color: var(--ink-2); margin-bottom: -8px; }
         /* 파일 올리는 곳 */
         .dropzone { border: 2px dashed var(--dash); border-radius: 18px; padding: 30px 20px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; background: var(--surface-2); transition: background 0.2s, border-color 0.2s; }
         .dropzone.over { background: var(--accent-soft); border-color: var(--accent); }
@@ -111,6 +114,7 @@
         .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
         .field input { height: 46px; padding: 0 14px; border: 1.5px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; }
         .field input:focus { outline: 3px solid var(--accent-ring); border-color: var(--accent); }
+        .field input::placeholder { color: var(--ink-3); opacity: 0.75; }
         .field small { color: var(--ink-3); }
         .actions { display: flex; flex-wrap: wrap; gap: 10px; }
         .paper-wrap { overflow-x: auto; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
@@ -158,12 +162,14 @@
                 <div id="failedBox"></div>
             </section>
 
-            <section class="card" id="listCard" hidden>
+            <section class="card" id="listCard">
                 <div class="step-head">
                     <span class="step-no">2</span>
                     <h2 class="step-heading">조사서 내용 확인</h2>
-                    <button type="button" class="btn btn-secondary spacer" onclick="clearAll()">모두 지우기</button>
+                    <button type="button" class="btn btn-secondary spacer" id="clearAllBtn" onclick="clearAll()" hidden>모두 지우기</button>
                 </div>
+                <p class="empty" id="listEmpty">조사서를 올리면 선생님별 내용이 여기에 표로 나옵니다.</p>
+                <div class="card-body" id="listBody" hidden>
                 <p class="step-lead">줄을 누르면 조사서에 적힌 내용을 볼 수 있습니다. 고칠 내용이 있으면 선생님이 조사서를 다시 작성해 도장을 찍어 내야 하므로, 여기서는 고치지 않고 해당 줄을 뺀 뒤 새 파일을 올립니다.</p>
                 <div class="chips" id="summaryChips"></div>
                 <div id="issueBox"></div>
@@ -174,34 +180,40 @@
                     </table>
                 </div>
                 <div id="detailBox"></div>
+                </div>
             </section>
 
-            <section class="card" id="rosterCard" hidden>
+            <section class="card" id="rosterCard">
                 <div class="step-head">
                     <span class="step-no">3</span>
                     <h2 class="step-heading">명부와 제출파일 받기</h2>
                 </div>
-                <p class="step-lead">교사 구분마다 명부 9종이 든 엑셀 파일과 교육지원청에 내는 제출파일을 받습니다. 명부는 엑셀에서 열어 그대로 인쇄하면 됩니다.</p>
+                <p class="empty" id="rosterEmpty">조사서를 올리면 조사서에 적힌 교사 구분(초등 교사, 초등 특수교사, 영양교사, 유치원 교사 등)마다 단추가 생기고, 구분별로 명부 9종과 제출파일을 따로 받을 수 있습니다.</p>
+                <div class="card-body" id="rosterBody" hidden>
+                <p class="step-lead">교사 구분마다 명부 9종이 든 엑셀 파일과 교육지원청에 내는 제출파일을 따로 받습니다. 명부는 엑셀에서 열어 그대로 인쇄하면 됩니다.</p>
+                <div class="tab-label">교사 구분 고르기 (구분마다 명부와 제출파일이 따로 만들어집니다)</div>
                 <div class="tabs" id="groupTabs" role="tablist" aria-label="교사 구분"></div>
                 <div class="fields">
                     <div class="field">
                         <label for="principalInput">기관장 (명부 오른쪽 위에 들어갑니다)</label>
-                        <input type="text" id="principalInput" oninput="setGroupSetting('principal', this.value)">
+                        <input type="text" id="principalInput" placeholder="예: 황산초등학교장, 황산초등학교병설유치원장" oninput="setGroupSetting('principal', this.value)">
                     </div>
                     <div class="field">
                         <label for="schoolLabelInput">학교 이름 (파일 이름에 들어갑니다)</label>
-                        <input type="text" id="schoolLabelInput" oninput="setGroupSetting('label', this.value)">
+                        <input type="text" id="schoolLabelInput" placeholder="예: 황산초, 황산초병설유치원" oninput="setGroupSetting('label', this.value)">
                         <small id="fileNameHint"></small>
                     </div>
                 </div>
                 <div class="actions">
-                    <button type="button" class="btn btn-primary" onclick="downloadRosters()">명부 9종 엑셀 받기</button>
-                    <button type="button" class="btn btn-primary" onclick="downloadSubmit()">제출파일 받기</button>
+                    <button type="button" class="btn btn-primary" id="rosterDownloadBtn" onclick="downloadRosters()">명부 9종 엑셀 받기</button>
+                    <button type="button" class="btn btn-primary" id="submitDownloadBtn" onclick="downloadSubmit()">제출파일 받기</button>
                     <button type="button" class="btn btn-secondary" id="downloadAllBtn" onclick="downloadEverything()">모든 교사 구분 한꺼번에 받기</button>
                 </div>
                 <div id="downloadStatus" aria-live="polite"></div>
+                <div class="tab-label">명부 미리보기 (숫자는 명부에 오른 사람 수)</div>
                 <div class="tabs" id="rosterTabs" role="tablist" aria-label="명부 종류"></div>
                 <div class="paper-wrap"><div class="paper" id="rosterPaper"></div></div>
+                </div>
             </section>
         </main>
     </div>
@@ -373,6 +385,7 @@
         function clearAll() {
             if (!records.length || !confirm('올린 조사서를 모두 지울까요?')) return;
             records = []; failedFiles = []; selectedId = null;
+            Object.keys(groupSettings).forEach(key => delete groupSettings[key]);   // 직접 고친 기관장·학교 이름도 처음으로
             document.getElementById('loadStatus').innerHTML = '';
             refresh();
         }
@@ -409,7 +422,7 @@
         // 조사서 '학교장' 칸의 수식과 같은 규칙
         function defaultPrincipal(type, school) {
             const family = familyOf(type);
-            if (!school) return family === 'kindergarten' ? 'ㅇㅇ(ㅇㅇ초병설)유치원장' : 'ㅇㅇ초등학교장';
+            if (!school) return '';
             if (family === 'nutrition') return school === '양산희망' ? '양산희망학교' : (school.endsWith('중') ? school + '학교장' : school + '등학교장');
             if (family === 'kindergarten') return SINGLE_KINDERGARTENS.includes(school) ? school + '치원장' : school + '초등학교병설유치원장';
             if (school === '이천') return '원동초등학교장';
@@ -418,7 +431,7 @@
         }
         function defaultSchoolLabel(type, school) {
             const family = familyOf(type);
-            if (!school) return family === 'kindergarten' ? 'OO유치원' : 'OO초';
+            if (!school) return '';
             if (family === 'nutrition') return school;
             if (family === 'kindergarten') return SINGLE_KINDERGARTENS.includes(school) ? school + '치원' : school + '초병설유치원';
             if (school === '이천') return '원동초 이천분교';
@@ -775,6 +788,8 @@
             if (document.activeElement !== principalInput) principalInput.value = setting.principal;
             if (document.activeElement !== labelInput) labelInput.value = setting.label;
             document.getElementById('downloadAllBtn').hidden = types.length < 2;
+            document.getElementById('rosterDownloadBtn').textContent = `${currentGroup} 명부 9종 엑셀 받기`;
+            document.getElementById('submitDownloadBtn').textContent = `${currentGroup} 제출파일 받기`;
             renderFileNameHint();
             renderRosterPaper();
         }
@@ -782,8 +797,8 @@
             recheck();
             renderFailed();
             const has = records.length > 0;
-            document.getElementById('listCard').hidden = !has;
-            document.getElementById('rosterCard').hidden = !has;
+            ['listBody', 'rosterBody', 'clearAllBtn'].forEach(id => { document.getElementById(id).hidden = !has; });
+            ['listEmpty', 'rosterEmpty'].forEach(id => { document.getElementById(id).hidden = has; });
             showDownloadStatus('');
             if (!has) return;
             renderList();
