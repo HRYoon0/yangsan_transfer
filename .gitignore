@@ -13,3 +13,6 @@
 
 # 편집 도구 설정
 .claude/
+
+# 설명서 PDF의 한글 이름 사본 (사이트에는 manual_helper.pdf, manual_manager.pdf 가 올라감)
+manual/
