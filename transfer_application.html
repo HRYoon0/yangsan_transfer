@@ -231,6 +231,7 @@
         .preview-status.ok { background: var(--accent-soft); color: var(--accent-ink); }
         .preview-status.warn { background: var(--warn-bg); color: var(--warn-ink); }
         .preview-status.bad { background: var(--danger-soft); color: var(--danger); }
+        .privacy-note { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; color: var(--accent-ink); font-family: var(--head); }
         .top-note { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 8px 40px; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; color: var(--ink-2); }
         /* 아래 고정 줄 */
         .app-footer { position: sticky; bottom: 0; z-index: 50; background: var(--surface); border-top: 1px solid var(--line); padding: 14px 40px; }
@@ -260,6 +261,7 @@
             <p>2027학년도 양산교육지원청 교육공무원 인사관리기준에 따라 계산합니다.</p>
             <p>작성자: 황산초등학교 윤희류</p>
             <p>오류 및 개선사항 문의: tmdsh2000@naver.com 혹은 내부메일</p>
+            <p class="privacy-note" title="입력한 내용은 서버로 보내지 않고 브라우저에도 저장하지 않습니다. 창을 닫거나 새로고침하면 사라지고, 내려받은 엑셀 파일만 이 컴퓨터에 남습니다."><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"></path></svg>입력한 개인정보는 어디에도 전송·저장되지 않습니다</p>
         </div>
         <header class="app-header">
             <div class="app-title">2027학년도 관내전보 내신자 조사서 도우미</div>
@@ -4785,7 +4787,6 @@
             applyFormType();
             updateThemeButton();
             initSchoolSelects();
-            loadFromLocalStorage();
         });
 
         function initSchoolSelects() {
@@ -10409,49 +10410,6 @@
                 bonusScore: document.getElementById('bonusScore').textContent,
                 totalScore: document.getElementById('totalScore').textContent
             };
-        }
-
-        function saveData() {
-            const data = collectData();
-            localStorage.setItem('transferApplication', JSON.stringify(data));
-            alert('✅ 임시 저장되었습니다!');
-        }
-
-        function loadFromLocalStorage() {
-            const saved = localStorage.getItem('transferApplication');
-            if (saved) {
-                // TODO: 데이터 로드 로직
-            }
-        }
-
-        function loadData() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = function(e) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const data = JSON.parse(event.target.result);
-                    // TODO: 데이터 로드 로직
-                    alert('✅ 데이터를 불러왔습니다!');
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        function downloadJSON() {
-            if (!validateRequired()) return;
-            const data = collectData();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `전보신청서_${data.name}_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            alert('✅ JSON 파일이 다운로드되었습니다!');
         }
 
         // 조사서의 각 칸에 값을 넣는다. setCellValue(칸 주소, 값)을 넘겨받아 쓰므로
