@@ -643,6 +643,25 @@
             }
         }
 
+        // 조사서 양식은 0인 값을 빈칸으로 보이게 설정해 두었는데, ExcelJS 는 그 설정(showZeros)을 저장하지 못한다.
+        // 그래서 저장하는 순간에 조사서 시트의 XML 에 그 설정을 다시 넣어 준다. (가산점이 없을 때 소계가 0.000 이 아니라 빈칸으로 보이게)
+        function keepZerosHidden(workbook) {
+            const xlsx = workbook.xlsx;
+            const addWorksheets = xlsx.addWorksheets;
+            xlsx.addWorksheets = function (zip, model) {
+                const formIds = new Set(model.worksheets.filter(sheet => String(sheet.name).startsWith('내신조사서')).map(sheet => String(sheet.id)));
+                const append = zip.append;
+                zip.append = function (data, options) {
+                    const match = /^xl\/worksheets\/sheet(\d+)\.xml$/.exec((options && options.name) || '');
+                    if (match && formIds.has(match[1]) && typeof data === 'string' && !data.includes('showZeros=')) {
+                        data = data.replace('<sheetView ', '<sheetView showZeros="0" ');
+                    }
+                    return append.call(this, data, options);
+                };
+                return addWorksheets.call(this, zip, model);
+            };
+        }
+
         // 조사서 시트 이름: 작년 취합용 엑셀과 같은 '내신조사서_학교_성명생년월일'
         function formSheetName(record, used) {
             const base = `내신조사서_${record.f.school}_${record.f.name}${record.f.birth}`.replace(/[\\/?*\[\]:]/g, '').slice(0, 31);
@@ -668,6 +687,7 @@
             const used = new Set(workbook.worksheets.map(sheet => sheet.name));
             groupRecords(type).forEach(record => addFormSheet(workbook, record, formSheetName(record, used)));
             workbook.calcProperties.fullCalcOnLoad = true;      // 엑셀에서 열 때 조사서의 총점 수식을 다시 계산
+            keepZerosHidden(workbook);
             return workbook;
         }
 
@@ -869,7 +889,8 @@
                 (byRow[row.r] || []).forEach(cell => {
                     let value = cell.value;
                     const isNumber = typeof value === 'number';
-                    if (isNumber) value = cell.numFmt.includes('0.000') ? value.toFixed(3) : (cell.numFmt.includes('0.00') ? value.toFixed(2) : String(value));
+                    // 조사서 양식이 0인 값을 빈칸으로 보이게 되어 있어, 화면과 인쇄에서도 0은 비워 둔다
+                    if (isNumber) value = value === 0 ? '' : (cell.numFmt.includes('0.000') ? value.toFixed(3) : (cell.numFmt.includes('0.00') ? value.toFixed(2) : String(value)));
                     value = value === null || value === undefined ? '' : String(value);
                     let width = 0;
                     for (let i = 0; i < cell.colSpan; i++) width += layout.cols[cell.c - FORM_COLS[0] + i];

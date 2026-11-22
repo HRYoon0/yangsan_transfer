@@ -10063,7 +10063,8 @@
                     let value = Object.prototype.hasOwnProperty.call(values, cell.address) ? values[cell.address]
                         : (cell.formula ? formulaValue(cell.formula) : cell.text);
                     const isNumber = typeof value === 'number';
-                    if (isNumber) value = isNaN(value) ? '' : (cell.numFmt.includes('0.000') ? value.toFixed(3) : String(value));
+                    // 양식이 0인 값을 빈칸으로 보이게 되어 있어, 미리보기에서도 0은 비워 둔다
+                    if (isNumber) value = (isNaN(value) || value === 0) ? '' : (cell.numFmt.includes('0.000') ? value.toFixed(3) : String(value));
                     value = value === null || value === undefined ? '' : String(value);
                     const step = excelCellStep(cell, layout);
                     const isValueCell = !cell.text;      // 양식에 글자가 없는 칸 = 값을 적는 칸
@@ -10524,6 +10525,25 @@
             return typeSelect && typeSelect.value ? box : null;
         }
 
+        // 조사서 양식은 0인 값을 빈칸으로 보이게 설정해 두었는데, ExcelJS 는 그 설정(showZeros)을 저장하지 못한다.
+        // 그래서 저장하는 순간에 조사서 시트의 XML 에 그 설정을 다시 넣어 준다. (가산점이 없을 때 소계가 0.000 이 아니라 빈칸으로 보이게)
+        function keepZerosHidden(workbook) {
+            const xlsx = workbook.xlsx;
+            const addWorksheets = xlsx.addWorksheets;
+            xlsx.addWorksheets = function (zip, model) {
+                const formIds = new Set(model.worksheets.filter(sheet => String(sheet.name).startsWith('내신조사서')).map(sheet => String(sheet.id)));
+                const append = zip.append;
+                zip.append = function (data, options) {
+                    const match = /^xl\/worksheets\/sheet(\d+)\.xml$/.exec((options && options.name) || '');
+                    if (match && formIds.has(match[1]) && typeof data === 'string' && !data.includes('showZeros=')) {
+                        data = data.replace('<sheetView ', '<sheetView showZeros="0" ');
+                    }
+                    return append.call(this, data, options);
+                };
+                return addWorksheets.call(this, zip, model);
+            };
+        }
+
         async function downloadExcel() {
             if (!validateRequired()) return;
             const unsavedBonus = getUnsavedBonusBox();
@@ -10595,6 +10615,7 @@
                 workbook.calcProperties.fullCalcOnLoad = true;
                 workbook.calcProperties.calcMode = 'auto';
                 workbook.calcProperties.calcCompleted = false;
+                keepZerosHidden(workbook);
 
                 const worksheet = workbook.getWorksheet(1); // 첫 번째 시트
 
