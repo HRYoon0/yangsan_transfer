@@ -1062,7 +1062,7 @@
                     <td>${order}</td>
                     <td><span class="state ${record.issues.length ? 'warn' : 'ok'}">${record.issues.length ? '확인 필요' : '정상'}</span>${Object.keys(record.edits).length ? '<span class="state edit">고침</span>' : ''}</td>
                     <td>${esc(record.type)}</td><td>${esc(f.name)}</td><td>${esc(f.birth)}</td><td>${esc(f.gender)}</td><td>${esc(f.school)}</td><td>${esc(f.kind)}</td>
-                    <td>${esc(f.hope1)}</td><td>${esc(f.hope2)}</td><td>${esc(f.hope3)}</td><td>${showScore(record.total)}</td><td>${showScore(record.careerScore)}</td><td>${esc(f.yearsHere)}</td>
+                    <td>${esc(f.hope1)}</td><td>${esc(f.hope2)}</td><td>${esc(f.hope3)}</td><td>${showScore(record.total)}</td><td>${showScore(record.careerScore)}</td><td>${typeof f.yearsHere === 'number' ? f.yearsHere.toFixed(2) : esc(f.yearsHere)}</td>
                     <td class="left">${esc(record.fileName)}</td>
                     <td><button type="button" class="btn btn-danger" onclick="removeRecord(${record.id}, event)">빼기</button></td></tr>`;
             }).join('');

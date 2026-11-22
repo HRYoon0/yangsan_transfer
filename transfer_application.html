@@ -534,6 +534,7 @@
                             <option value="과원이 해소될 경우, 희망학교 전보희망">과원이 해소될 경우, 희망학교 전보희망</option>
                             <option value="과원이 해소될 경우, 현임교 계속 근무 희망">과원이 해소될 경우, 현임교 계속 근무 희망</option>
                         </select>
+                        <div class="help-text">과원 내신자는 꼭 고릅니다. 과원이면 1단계에서 전보구분을 '만기'로 하고 1~3희망을 모두 적으며, 비고에 과원 순서(과원1, 과원2 …)를 적습니다. (양식의 작성 방법)</div>
                     </div>
                     <div class="form-group">
                         <label>전보우선 사유</label>
@@ -10090,7 +10091,7 @@
                         : (cell.formula ? formulaValue(cell.formula) : cell.text);
                     const isNumber = typeof value === 'number';
                     // 양식이 0인 값을 빈칸으로 보이게 되어 있어, 미리보기에서도 0은 비워 둔다
-                    if (isNumber) value = (isNaN(value) || value === 0) ? '' : (cell.numFmt.includes('0.000') ? value.toFixed(3) : String(value));
+                    if (isNumber) value = (isNaN(value) || value === 0) ? '' : (cell.numFmt.includes('0.000') ? value.toFixed(3) : (cell.numFmt.includes('0.00') ? value.toFixed(2) : String(value)));
                     value = value === null || value === undefined ? '' : String(value);
                     const step = excelCellStep(cell, layout);
                     const isValueCell = !cell.text;      // 양식에 글자가 없는 칸 = 값을 적는 칸
@@ -10541,7 +10542,8 @@
             setCellValue('H8', data.otherCity);
             setCellValue('M8', data.otherProvince);
             setCellValue('Q8', data.promotionCandidate);
-            setCellValue('H10', data.currentSchoolYears);
+            // 현임교근무연수는 숫자로 적는다 (양식의 이 칸은 숫자 서식 0.00 이고, 엑셀에 직접 쓰던 때에도 숫자였다. 글자로 적으면 명부에서 동점자 순서가 글자 순이 된다)
+            setCellValue('H10', parseCurrentSchoolYears(data.currentSchoolYears) ? Number(String(data.currentSchoolYears).trim()) : data.currentSchoolYears);
             setCellValue('N10', data.birthdate);
             setCellValue('P10', data.remarks);
 
