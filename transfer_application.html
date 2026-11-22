@@ -15,7 +15,8 @@
             document.documentElement.dataset.theme = theme;
         })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <!-- 엑셀 파일을 다루는 ExcelJS 4.3.0 (MIT, exceljs.LICENSE.txt). 외부 서버에서 받지 않도록 저장소에 넣은 파일을 쓴다. -->
+    <script src="exceljs.min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" media="print" onload="this.media='all'">
     <style>
         :root {
@@ -232,6 +233,7 @@
         .preview-status.warn { background: var(--warn-bg); color: var(--warn-ink); }
         .preview-status.bad { background: var(--danger-soft); color: var(--danger); }
         .privacy-note { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; color: var(--accent-ink); font-family: var(--head); }
+        .privacy-note svg { flex: none; transform: translateY(-1.5px); }      /* 주아체 글자는 줄 안에서 조금 위에 놓여서, 아이콘을 그만큼 올려 높이를 맞춘다 */
         .top-note { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 8px 40px; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; color: var(--ink-2); }
         /* 아래 고정 줄 */
         .app-footer { position: sticky; bottom: 0; z-index: 50; background: var(--surface); border-top: 1px solid var(--line); padding: 14px 40px; }
