@@ -205,7 +205,7 @@
     <div class="gate" id="gate">
         <form class="gate-card" onsubmit="enterWithPassword(event)">
             <div class="gate-title">학교 관리자 취합 도우미</div>
-            <p class="gate-lead">교감 선생님용 화면입니다. 비밀번호를 입력해 주세요.</p>
+            <p class="gate-lead">관리자용 화면입니다. 비밀번호를 입력해 주세요.</p>
             <div class="field">
                 <label for="gateInput">비밀번호</label>
                 <input type="password" id="gateInput" autocomplete="off" oninput="document.getElementById('gateError').textContent = ''">
@@ -1379,7 +1379,7 @@
         }
 
         // ───────── 들어가기 전 비밀번호 확인 ─────────
-        // 교감 선생님용 화면이라 비밀번호를 묻는다. 코드에는 비밀번호를 적지 않고 해시값만 둔다.
+        // 관리자(교감·원감 선생님)용 화면이라 비밀번호를 묻는다. 코드에는 비밀번호를 적지 않고 해시값만 둔다.
         // 맞게 입력했다는 사실도 어디에 저장하지 않으므로, 화면을 새로 열 때마다 다시 묻는다.
         // (서버가 없는 페이지라 완전한 잠금은 아니다. 조사서 내용은 파일을 올리기 전까지 이 화면 어디에도 없다.)
         const GATE_HASH = '47a5fa66a770dd3765abc71e7766e9a3fbd595b74884d53793debc228b27c89d';
