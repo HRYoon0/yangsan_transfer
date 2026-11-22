@@ -210,14 +210,14 @@
                     <span class="step-no">3</span>
                     <h2 class="step-heading">취합 파일·제출파일 받기와 인쇄</h2>
                 </div>
-                <p class="empty" id="rosterEmpty">조사서를 올리면 조사서에 적힌 교사 구분(초등 교사, 초등 특수교사, 영양교사, 유치원 교사 등)마다 단추가 생기고, 구분별로 교육지원청에 낼 두 파일(학교관리자취합용 파일, 제출파일)을 따로 받을 수 있습니다.</p>
+                <p class="empty" id="rosterEmpty">조사서를 올리면 조사서에 적힌 교사 구분(초등 교사·특수·상담·사서·보건교사, 영양교사, 유치원 교사·보건·특수교사)마다 단추가 생깁니다. 교육지원청에 낼 학교관리자취합용 파일은 초등 전체·영양교사·유치원 전체로 한 개씩, 제출파일은 교사 구분마다 한 개씩 받습니다.</p>
                 <div class="card-body" id="rosterBody" hidden>
-                <p class="step-lead">교육지원청에는 교사 구분마다 두 파일을 냅니다. <strong>학교관리자취합용 파일</strong>에는 명부 9종과 자료, 선생님들의 조사서가 시트로 들어 있고(작년 취합용 엑셀과 같은 구성), <strong>제출파일</strong>에는 자료만 들어 있습니다. 명부는 취합용 파일을 엑셀에서 열어 인쇄합니다.</p>
-                <div class="tab-label">교사 구분 고르기 (구분마다 두 파일이 따로 만들어집니다)</div>
+                <p class="step-lead">교육지원청에는 두 가지를 냅니다. <strong>학교관리자취합용 파일</strong>은 작년 취합용 엑셀처럼 초등 전체(초등 교사·특수·상담·사서·보건교사)가 한 파일, 영양교사가 한 파일, 유치원 전체(유치원 교사·보건·특수교사)가 한 파일이고, 명부 9종과 자료, 선생님들의 조사서가 시트로 들어 있습니다. <strong>제출파일</strong>은 교사 구분마다 한 개씩이고 자료만 들어 있습니다. 명부는 취합용 파일을 엑셀에서 열어 인쇄합니다.</p>
+                <div class="tab-label">교사 구분 고르기 (명부 미리보기·제출파일·조사서 인쇄가 고른 구분 것으로 바뀝니다)</div>
                 <div class="tabs" id="groupTabs" role="tablist" aria-label="교사 구분"></div>
                 <div class="fields">
                     <div class="field">
-                        <label for="principalInput">기관장 (명부 오른쪽 위에 들어갑니다)</label>
+                        <label for="principalInput" id="principalLabel">기관장 (명부 오른쪽 위에 들어갑니다)</label>
                         <input type="text" id="principalInput" placeholder="예: 황산초등학교장, 황산초등학교병설유치원장" oninput="setGroupSetting('principal', this.value)">
                     </div>
                     <div class="field">
@@ -230,7 +230,7 @@
                     <button type="button" class="btn btn-primary" id="collectionDownloadBtn" onclick="downloadCollection()">학교관리자취합용 파일 받기</button>
                     <button type="button" class="btn btn-primary" id="submitDownloadBtn" onclick="downloadSubmit()">제출파일 받기</button>
                     <button type="button" class="btn btn-secondary" id="printFormsBtn" onclick="printForms()">조사서 전체 인쇄</button>
-                    <button type="button" class="btn btn-secondary" id="downloadAllBtn" onclick="downloadEverything()">모든 교사 구분 파일 한꺼번에 받기</button>
+                    <button type="button" class="btn btn-secondary" id="downloadAllBtn" onclick="downloadEverything()">모든 파일 한꺼번에 받기</button>
                 </div>
                 <div id="downloadStatus" aria-live="polite"></div>
                 <div class="tab-label">명부 미리보기 (숫자는 명부에 오른 사람 수)</div>
@@ -265,7 +265,7 @@
         let selectedId = null;     // 내용을 펼쳐 보는 조사서
         let currentGroup = null;   // 보고 있는 교사 구분
         let currentRoster = 0;     // 보고 있는 명부 번호
-        const groupSettings = {};  // 교사 구분별로 직접 고친 기관장·학교 이름
+        const groupSettings = {};  // 양식 종류(초등/영양교사/유치원)별로 직접 고친 기관장·학교 이름
 
         // ───────── 화면 공통 ─────────
         function toggleTheme() {
@@ -448,7 +448,12 @@
             });
         }
         function groupRecords(type) { return records.filter(record => record.type === type); }
+        // 양식 종류: 조사서 양식과 작년 취합용 엑셀이 초등(교사·특수·상담·사서·보건) / 영양교사 / 유치원(교사·보건·특수)으로 나뉘어 있다
         function familyOf(type) { return type === '영양교사' ? 'nutrition' : (type.startsWith('유치원') ? 'kindergarten' : 'elementary'); }
+        const FAMILY_LABELS = { elementary: '초등', nutrition: '영양교사', kindergarten: '유치원' };
+        function familyTypes(family) { return groupNames().filter(type => familyOf(type) === family); }
+        function familyRecords(family) { return familyTypes(family).flatMap(type => groupRecords(type)); }
+        function familyNames() { return ['elementary', 'nutrition', 'kindergarten'].filter(family => familyTypes(family).length); }
 
         // 조사서 '학교장' 칸의 수식과 같은 규칙
         function defaultPrincipal(type, school) {
@@ -470,8 +475,8 @@
             return school + '초';
         }
         function settingOf(type) {
-            const school = String(majoritySchool(groupRecords(type)));
-            const custom = groupSettings[type] || {};
+            const school = String(majoritySchool(familyRecords(familyOf(type))));
+            const custom = groupSettings[familyOf(type)] || {};
             return {
                 principal: custom.principal !== undefined ? custom.principal : defaultPrincipal(type, school),
                 label: custom.label !== undefined ? custom.label : defaultSchoolLabel(type, school)
@@ -479,14 +484,15 @@
         }
         function setGroupSetting(key, value) {
             if (!currentGroup) return;
-            (groupSettings[currentGroup] = groupSettings[currentGroup] || {})[key] = value;
+            const family = familyOf(currentGroup);
+            (groupSettings[family] = groupSettings[family] || {})[key] = value;
             renderFileNameHint();
             renderRosterPaper();
         }
         const safeFileName = text => String(text).replace(/[\\/:*?"<>|]/g, '').trim();
         function fileNames(type) {
             const label = safeFileName(settingOf(type).label) || '학교';
-            return { collection: `${label}_관내전보_학교관리자취합용(${safeFileName(type)}).xlsx`, submit: `${label}_관내전보_제출파일(${safeFileName(type)}).xlsx` };
+            return { collection: `${label}_관내전보_학교관리자취합용(${FAMILY_LABELS[familyOf(type)]}).xlsx`, submit: `${label}_관내전보_제출파일(${safeFileName(type)}).xlsx` };
         }
 
         // ───────── 명부 9종 (작년 취합용 엑셀의 매크로와 같은 규칙) ─────────
@@ -604,12 +610,12 @@
             if (style.n && style.n !== 'General') cell.numFmt = style.n;
         }
 
-        function addRosterSheet(workbook, definition, type) {
+        function addRosterSheet(workbook, definition, type, sheetName) {
             const roster = buildRoster(definition, type);
             const spec = roster.spec, styles = ROSTER_SPEC.styles, lastColumn = columnLetter(spec.cols);
             const lastRow = Math.max(roster.printEnd, spec.first + roster.lines.length - 1);
             const page = spec.page;
-            const sheet = workbook.addWorksheet(definition.sheet, { pageSetup: {
+            const sheet = workbook.addWorksheet(sheetName || definition.sheet, { pageSetup: {
                 paperSize: page.paper, orientation: page.orientation, horizontalCentered: page.hc,
                 margins: { left: page.margins[0], right: page.margins[1], top: page.margins[2], bottom: page.margins[3], header: page.margins[4], footer: page.margins[5] },
                 printArea: `A${spec.titleRow}:${lastColumn}${roster.printEnd}`
@@ -679,13 +685,19 @@
             target.model = Object.assign({}, model, { id: target.id, name, properties, state: 'visible', mergeCells: model.merges });
             target.name = name;
         }
-        // 학교관리자취합용 파일: 명부 9종 + 자료 + 조사서 시트 (작년 취합용 엑셀을 교육지원청에 내던 것과 같은 구성)
-        function buildCollectionWorkbook(type) {
+        // 학교관리자취합용 파일: 양식 종류(초등 전체 / 영양교사 / 유치원 전체)마다 한 개. 명부 9종 + 자료 + 조사서 시트.
+        // 작년 취합용 엑셀은 메뉴에서 교사 구분을 바꾸면 명부가 다시 만들어졌지만, 매크로가 없는 파일이라
+        // 교사 구분이 둘 이상이면 명부 시트를 구분마다 따로 넣는다. 예) 서열명부(초등 교사), 서열명부(초등 특수교사)
+        function rosterSheetName(definition, type, types) {
+            return types.length > 1 ? `${definition.sheet}(${type})`.replace(/[\\/?*\[\]:]/g, '').slice(0, 31) : definition.sheet;
+        }
+        function buildCollectionWorkbook(family) {
             const workbook = new ExcelJS.Workbook();
-            ROSTERS.forEach(definition => addRosterSheet(workbook, definition, type));
-            addDataSheet(workbook, type);
+            const types = familyTypes(family), list = familyRecords(family);
+            types.forEach(type => ROSTERS.forEach(definition => addRosterSheet(workbook, definition, type, rosterSheetName(definition, type, types))));
+            addDataSheet(workbook, list, family);
             const used = new Set(workbook.worksheets.map(sheet => sheet.name));
-            groupRecords(type).forEach(record => addFormSheet(workbook, record, formSheetName(record, used)));
+            list.forEach(record => addFormSheet(workbook, record, formSheetName(record, used)));
             workbook.calcProperties.fullCalcOnLoad = true;      // 엑셀에서 열 때 조사서의 총점 수식을 다시 계산
             keepZerosHidden(workbook);
             return workbook;
@@ -702,21 +714,20 @@
         function buildSubmitWorkbook(type) {
             const workbook = new ExcelJS.Workbook();
             workbook.addWorksheet('Sheet1');
-            addDataSheet(workbook, type);
+            addDataSheet(workbook, groupRecords(type), familyOf(type));
             return workbook;
         }
-        function addDataSheet(workbook, type) {
+        function addDataSheet(workbook, list, family) {
             const data = ROSTER_SPEC.data;
             const sheet = workbook.addWorksheet('자료');
             const thin = { style: 'thin' }, box = { left: thin, right: thin, top: thin, bottom: thin };
             const font = { name: '맑은 고딕', size: 11 };
             const headers = data.row2.slice();
-            if (familyOf(type) === 'nutrition') headers.splice(22, 4, '직계존비속 교직원 성명', '직계존비속 교직원 소속', '직계존비속 학생 성명', '직계존비속 학생 소속');
+            if (family === 'nutrition') headers.splice(22, 4, '직계존비속 교직원 성명', '직계존비속 교직원 소속', '직계존비속 학생 성명', '직계존비속 학생 소속');
             headers[30] = '(사용 안 함)';
             const fills = { B1: 'FFFFFF00', Q1: 'FFDBDBDB', AA1: 'FFFFFF00', AE1: 'FFFFFF00', AG1: 'FFC6E0B4' };
             data.widths.forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
             sheet.getRow(1).height = data.h1;
-            const list = groupRecords(type);
             const countCell = sheet.getCell('A1');
             countCell.value = { formula: 'COUNTA(A3:A1002)', result: list.length };
             countCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } };
@@ -763,10 +774,12 @@
             return !count || confirm(`확인이 필요한 조사서가 ${count}건 있습니다. 그대로 파일을 만들까요?`);
         }
         async function downloadCollection() {
-            if (!currentGroup || !confirmIssues([currentGroup])) return;
+            if (!currentGroup) return;
+            const family = familyOf(currentGroup), types = familyTypes(family);
+            if (!confirmIssues(types)) return;
             const name = fileNames(currentGroup).collection;
-            await saveWorkbook(buildCollectionWorkbook(currentGroup), name);
-            showDownloadStatus(`${esc(name)} 파일을 받았습니다. 명부 9종, 자료, 조사서 ${groupRecords(currentGroup).length}장이 시트로 들어 있습니다.`);
+            await saveWorkbook(buildCollectionWorkbook(family), name);
+            showDownloadStatus(`${esc(name)} 파일을 받았습니다. ${esc(types.join(', '))}의 명부 9종${types.length > 1 ? '(구분마다 따로)' : ''}, 자료, 조사서 ${familyRecords(family).length}장이 시트로 들어 있습니다.`);
         }
         async function downloadSubmit() {
             if (!currentGroup || !confirmIssues([currentGroup])) return;
@@ -777,12 +790,17 @@
         async function downloadEverything() {
             const types = groupNames();
             if (!types.length || !confirmIssues(types)) return;
-            for (const type of types) {
-                await saveWorkbook(buildCollectionWorkbook(type), fileNames(type).collection);
-                await saveWorkbook(buildSubmitWorkbook(type), fileNames(type).submit);
-                await new Promise(resolve => setTimeout(resolve, 300));   // 브라우저가 여러 파일 받기를 막지 않도록 조금 쉰다
+            const families = familyNames();
+            const pause = () => new Promise(resolve => setTimeout(resolve, 300));   // 브라우저가 여러 파일 받기를 막지 않도록 조금 쉰다
+            for (const family of families) {
+                await saveWorkbook(buildCollectionWorkbook(family), fileNames(familyTypes(family)[0]).collection);
+                await pause();
             }
-            showDownloadStatus(`교사 구분 ${types.length}개의 취합용 파일과 제출파일 ${types.length * 2}개를 받았습니다. 브라우저가 여러 파일 받기를 물으면 허용해 주세요.`);
+            for (const type of types) {
+                await saveWorkbook(buildSubmitWorkbook(type), fileNames(type).submit);
+                await pause();
+            }
+            showDownloadStatus(`취합용 파일 ${families.length}개(${families.map(family => FAMILY_LABELS[family]).join(', ')})와 제출파일 ${types.length}개(교사 구분마다 하나)를 받았습니다. 브라우저가 여러 파일 받기를 물으면 허용해 주세요.`);
         }
 
         // ───────── 화면 그리기 ─────────
@@ -1034,6 +1052,9 @@
             if (!currentGroup) return;
             const names = fileNames(currentGroup);
             document.getElementById('fileNameHint').textContent = `받는 파일: ${names.collection} / ${names.submit}`;
+            const family = familyOf(currentGroup), types = familyTypes(family);
+            document.getElementById('principalLabel').textContent = types.length > 1
+                ? `기관장 (명부 오른쪽 위에 들어갑니다. ${FAMILY_LABELS[family]} ${types.length}개 구분에 함께 쓰입니다)` : '기관장 (명부 오른쪽 위에 들어갑니다)';
         }
         function renderRosterPaper() {
             if (!currentGroup) return;
@@ -1052,7 +1073,8 @@
             if (document.activeElement !== principalInput) principalInput.value = setting.principal;
             if (document.activeElement !== labelInput) labelInput.value = setting.label;
             document.getElementById('downloadAllBtn').hidden = types.length < 2;
-            document.getElementById('collectionDownloadBtn').textContent = `${currentGroup} 학교관리자취합용 파일 받기`;
+            const family = familyOf(currentGroup), sameFamily = familyTypes(family);
+            document.getElementById('collectionDownloadBtn').textContent = `${FAMILY_LABELS[family]} 학교관리자취합용 파일 받기` + (sameFamily.length > 1 ? ` (${sameFamily.length}개 구분, ${familyRecords(family).length}명)` : '');
             document.getElementById('submitDownloadBtn').textContent = `${currentGroup} 제출파일 받기`;
             document.getElementById('printFormsBtn').textContent = `${currentGroup} 조사서 전체 인쇄 (${groupRecords(currentGroup).length}장)`;
             renderFileNameHint();
