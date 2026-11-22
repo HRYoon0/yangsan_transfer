@@ -519,6 +519,11 @@
                 <p class="step-lead">과원·전보우선·전보유예 사유나 부부·직계존비속 교직원이 있을 때만 입력합니다. 없으면 그대로 넘어가도 됩니다.</p>
                 <div class="step-card">
                 <div class="form-grid">
+                    <!-- 승진 희망 지역: 영양교사 양식에만 있는 칸 (초등·유치원 양식은 이 줄이 숨겨져 있어 쓰지 않는다) -->
+                    <div class="form-group hidden" id="promotionRegionGroup">
+                        <label>승진 희망 지역</label>
+                        <input type="text" id="promotionRegion" placeholder="승진후보자만 입력">
+                    </div>
                     <div class="form-group">
                         <label>과원 전보 내신자 희망</label>
                         <select id="overStaffHope">
@@ -4647,6 +4652,7 @@
                 button.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
             activeRuleSet = getRuleSetKey();
+            document.getElementById('promotionRegionGroup').classList.toggle('hidden', currentForm !== 'nutrition');
             if (currentForm === 'elementary') return;
 
             const fill = (id, values, emptyLabel) => {
@@ -8066,8 +8072,21 @@
             if (!warning) return;
             const violations = getBonusRuleViolations();
             const periodWarnings = getBonusPeriodWarnings();
-            warning.classList.toggle('hidden', violations.length === 0 && periodWarnings.length === 0);
+            // 저장한 가산점이 엑셀 양식의 줄 수를 넘는지
+            let rowNote = '';
+            try {
+                const data = collectData();
+                const limit = getBonusRowLimit(data.careers.length);
+                const fitted = fitBonusesToRows(data.bonuses.filter(bonus => bonus.itemId), limit);
+                if (fitted.merged) {
+                    rowNote = fitted.rows.length <= limit
+                        ? `<strong>가산점이 ${fitted.before}줄이라 엑셀 양식(${limit}줄)보다 많습니다.</strong> 엑셀에는 같은 평정 대상을 한 줄로 모아 ${fitted.rows.length}줄로 적습니다. (내용과 기간은 이어 적고 점수는 합칩니다. 총점은 그대로입니다)`
+                        : `<strong>가산점이 ${fitted.before}줄이고, 같은 평정 대상을 한 줄로 모아도 ${fitted.rows.length}줄이라 엑셀 양식(${limit}줄)에 다 들어가지 않습니다.</strong> 이대로는 엑셀로 내려받을 수 없습니다.`;
+                }
+            } catch (error) {}
+            warning.classList.toggle('hidden', violations.length === 0 && periodWarnings.length === 0 && !rowNote);
             warning.innerHTML =
+                (rowNote ? rowNote + (violations.length > 0 || periodWarnings.length > 0 ? '<br><br>' : '') : '') +
                 (violations.length === 0 ? '' :
                     '<strong>가산점 평정표의 한도·비고에 맞지 않는 항목이 있습니다.</strong> 해당 항목을 고치거나 삭제해주세요.<br>' +
                     violations.map(text => '· ' + text).join('<br>')) +
@@ -9732,6 +9751,7 @@
             qualification: '소지자격', promotionCandidate: '승진후보자'
         };
         const WIZARD_EXTRA_FIELDS = [
+            ['promotionRegion', '승진 희망 지역'],
             ['overStaffHope', '과원 전보 내신자 희망'], ['transferPriorityReason', '전보우선 사유'], ['transferDeferReason', '전보유예 사유'],
             ['spouseName', '부부 교직원 성명'], ['spouseSchool', '부부 교직원 소속'],
             ['relative1Name', '직계존비속 교직원1 성명'], ['relative1School', '직계존비속 교직원1 소속'],
@@ -10125,6 +10145,8 @@
             }
             updatePreviewStatus(data);
             data.bonuses = data.bonuses.filter(bonus => bonus.itemId);      // 평정 대상을 아직 고르지 않은 줄은 미리보기에 넣지 않음
+            const bonusRowLimit = getBonusRowLimit(data.careers.length);
+            data.bonuses = fitBonusesToRows(data.bonuses, bonusRowLimit).rows.slice(0, bonusRowLimit);      // 줄 수를 넘으면 같은 평정 대상을 한 줄로
             // 내려받기와 같은 양식을 고름 (경력이 6~8줄이면 줄을 늘린 양식)
             const careerRows = Math.min(FORM_TYPES[currentForm].maxCareerRows, data.careers.length);
             const extraCareerRows = Math.max(0, careerRows - 5);
@@ -10408,6 +10430,7 @@
                 integrated3: document.getElementById('integrated3').value,
                 careers: careers,
                 bonuses: bonuses,
+                promotionRegion: currentForm === 'nutrition' ? document.getElementById('promotionRegion').value.trim() : '',
                 overStaffHope: document.getElementById('overStaffHope').value,
                 transferPriorityReason: document.getElementById('transferPriorityReason').value,
                 transferDeferReason: document.getElementById('transferDeferReason').value,
@@ -10425,6 +10448,39 @@
 
         // 조사서의 각 칸에 값을 넣는다. setCellValue(칸 주소, 값)을 넘겨받아 쓰므로
         // 엑셀 내려받기와 화면의 엑셀 미리보기가 똑같은 칸에 똑같은 값을 넣게 된다.
+        // 엑셀 양식에 적을 수 있는 가산점 줄 수 (초등 19줄, 영양교사·유치원 17줄. 경력이 6~8줄이면 그만큼 줄어든다)
+        function getBonusRowLimit(careerCount) {
+            const formType = FORM_TYPES[currentForm];
+            return formType.bonusRows - Math.max(0, Math.min(formType.maxCareerRows, careerCount) - 5);
+        }
+
+        // 가산점이 양식의 줄 수를 넘으면 같은 평정 대상끼리 한 줄로 모은다. 넘지 않으면 그대로 둔다.
+        //   내용: 같으면 한 번만, 다르면 쉼표로 이어 적고 끝에 건수를 붙임 / 기간: 쉼표로 이어 적음 / 점수: 합계
+        //   (점수 계산은 바뀌지 않는다. 엑셀에 적는 줄만 줄인다)
+        function fitBonusesToRows(bonuses, maxRows) {
+            if (bonuses.length <= maxRows) return { rows: bonuses, merged: false, before: bonuses.length };
+            const rows = [];
+            bonuses.forEach(bonus => {
+                const same = rows.find(row => row.type === bonus.type && row.itemId === bonus.itemId);
+                if (!same) {
+                    rows.push(Object.assign({}, bonus, { names: [bonus.itemName], periods: bonus.period ? [bonus.period] : [], count: 1 }));
+                    return;
+                }
+                same.count++;
+                if (!same.names.includes(bonus.itemName)) same.names.push(bonus.itemName);
+                if (bonus.period) same.periods.push(bonus.period);
+                const sum = parseFloat(same.score) + parseFloat(bonus.score);
+                same.score = isNaN(sum) ? same.score : (Math.round(sum * 1000) / 1000).toFixed(3);
+            });
+            rows.forEach(row => {
+                if (row.count > 1) {
+                    row.itemName = `${row.names.join(', ')} (${row.count}건)`;
+                    row.period = row.periods.join(', ');
+                }
+            });
+            return { rows, merged: true, before: bonuses.length };
+        }
+
         function writeFormValues(setCellValue, data, bonusStartRow) {
             // 조사서 제목 (소지자격에 맞는 교사 구분). 학교관리자취합용 파일이 이 제목에서 교사 구분을 읽는다.
             setCellValue('B3', getFormTitle(data.qualification));
@@ -10469,7 +10525,10 @@
             });
 
             // 추가 입력 항목 (Row 48-57)
-            // Row 48: 승진 희망 지역 (웹 페이지에 해당 필드 없음)
+            // Row 48: 승진 희망 지역
+            if (data.promotionRegion) {
+                setCellValue('F48', data.promotionRegion);
+            }
 
             // Row 49: 과원 전보 내신자 희망
             if (data.overStaffHope) {
@@ -10567,10 +10626,12 @@
             }
             const extraCareerRows = Math.max(0, data.careers.length - BASE_CAREER_ROWS);
             const bonusStartRow = 18 + extraCareerRows;
-            const MAX_BONUS_ROWS = FORM_TYPES[currentForm].bonusRows - extraCareerRows;      // 초등 19줄, 영양교사·유치원 17줄
-            if (data.bonuses.length > MAX_BONUS_ROWS) {
-                alert(`가산점은 엑셀 양식에 최대 ${MAX_BONUS_ROWS}줄까지 입력할 수 있습니다. (현재 ${data.bonuses.length}줄)` +
+            const MAX_BONUS_ROWS = getBonusRowLimit(data.careers.length);      // 초등 19줄, 영양교사·유치원 17줄 (경력 6~8줄이면 그만큼 줄어듦)
+            const fittedBonuses = fitBonusesToRows(data.bonuses, MAX_BONUS_ROWS);      // 줄 수를 넘으면 같은 평정 대상을 한 줄로 모음
+            if (fittedBonuses.rows.length > MAX_BONUS_ROWS) {
+                alert(`가산점이 ${data.bonuses.length}줄입니다. 같은 평정 대상을 한 줄로 모아도 ${fittedBonuses.rows.length}줄이라, 엑셀 양식의 ${MAX_BONUS_ROWS}줄에 다 들어가지 않습니다.` +
                       (extraCareerRows > 0 ? `\n경력 사항이 ${data.careers.length}줄이라 가산점 줄이 ${extraCareerRows}줄 줄었습니다.` : ''));
+                goToStep(3);
                 return;
             }
             const bonusViolations = getBonusRuleViolations();
@@ -10627,20 +10688,50 @@
                     cell.style = originalStyle;
                 }
 
+                data.bonuses = fittedBonuses.rows;      // 엑셀에는 양식 줄 수에 맞춘 줄로 적는다 (검사는 위에서 원래 항목으로 마쳤다)
                 writeFormValues(setCellValue, data, bonusStartRow);
 
-                // 가산점 내용 셀에 텍스트 자동 축소 적용 (cell.style 전체를 재설정)
-                data.bonuses.forEach((bonus, index) => {
-                    const contentCell = worksheet.getCell(`E${bonusStartRow + index}`);
-                    contentCell.style = {
-                        ...contentCell.style,
+                // 가산점 내용 셀에 텍스트 자동 축소 적용 (cell.style 전체를 재설정). 한 줄로 모은 항목은 기간 칸도 길어지므로 같이 축소한다.
+                const shrinkCell = address => {
+                    const cell = worksheet.getCell(address);
+                    cell.style = {
+                        ...cell.style,
                         alignment: {
-                            vertical: contentCell.style.alignment?.vertical || 'middle',
-                            horizontal: contentCell.style.alignment?.horizontal || 'left',
-                            wrapText: contentCell.style.alignment?.wrapText,
+                            vertical: cell.style.alignment?.vertical || 'middle',
+                            horizontal: cell.style.alignment?.horizontal || 'left',
+                            wrapText: cell.style.alignment?.wrapText,
                             shrinkToFit: true
                         }
                     };
+                };
+                // 한 줄로 모은 항목은 내용·기간이 길어진다. 한 줄로 축소하면 읽기 어려우므로, 줄을 바꾸면서 칸에 들어갈 만큼만 글자를 줄인다.
+                const fitMergedText = (address, lastColumn, text) => {
+                    const cell = worksheet.getCell(address);
+                    let width = 0;
+                    for (let c = cell.col; c <= lastColumn; c++) width += ((worksheet.getColumn(c).width || 8.43) * 7 + 5) * 0.75;      // 병합된 칸 너비(포인트)
+                    const height = worksheet.getRow(cell.row).height || 15;
+                    const em = [...String(text)].reduce((sum, ch) => sum + (ch.charCodeAt(0) > 255 ? 1 : 0.55), 0);                  // 한글 1, 영문·숫자 0.55 글자 폭
+                    const baseSize = (cell.style.font && cell.style.font.size) || 11;
+                    let size = 5;
+                    for (let trial = baseSize; trial >= 5; trial -= 0.5) {
+                        const lines = Math.max(1, Math.floor(height / (trial * 1.25)));
+                        const need = em / ((width - 4) / trial);
+                        if ((need <= 1 ? 1 : Math.ceil(need * 1.15)) <= lines) { size = trial; break; }
+                    }
+                    cell.style = {
+                        ...cell.style,
+                        font: { ...cell.style.font, size },
+                        alignment: { ...cell.style.alignment, vertical: cell.style.alignment?.vertical || 'middle', wrapText: true, shrinkToFit: false }
+                    };
+                };
+                data.bonuses.forEach((bonus, index) => {
+                    const row = bonusStartRow + index;
+                    if (bonus.count > 1) {
+                        fitMergedText(`E${row}`, 10, bonus.itemName);      // 내용: E~J열
+                        fitMergedText(`K${row}`, 14, bonus.period);        // 기간: K~N열
+                    } else {
+                        shrinkCell(`E${row}`);
+                    }
                 });
 
                 // 파일 다운로드
@@ -10653,7 +10744,9 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
 
-                alert('✅ 엑셀 파일이 다운로드되었습니다!');
+                alert('✅ 엑셀 파일이 다운로드되었습니다!' + (fittedBonuses.merged
+                    ? `\n\n가산점이 ${fittedBonuses.before}줄이라 양식(${MAX_BONUS_ROWS}줄)에 맞추려고 같은 평정 대상을 한 줄로 모아 ${fittedBonuses.rows.length}줄로 적었습니다. 점수 합계는 그대로입니다.`
+                    : ''));
             } catch (error) {
                 console.error('엑셀 다운로드 오류:', error);
                 alert('❌ 엑셀 파일 생성 중 오류가 발생했습니다. 템플릿 파일이 있는지 확인하세요.');
