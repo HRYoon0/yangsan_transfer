@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2027학년도 관내전보 학교 관리자 취합 도우미</title>
+    <script id="themeInit">
+        // 화면이 그려지기 전에 밝은/어두운 모드를 정한다: 기본은 밝은 모드, 다크 모드를 직접 골랐을 때만 다크 모드
+        (function() {
+            var theme = 'light';
+            try {
+                var saved = localStorage.getItem('transferTheme');
+                if (saved === 'dark') theme = 'dark';
+            } catch (error) {}
+            document.documentElement.dataset.theme = theme;
+        })();
+    </script>
+    <!-- 엑셀 파일을 다루는 ExcelJS 4.3.0 (MIT, exceljs.LICENSE.txt). 외부 서버에서 받지 않도록 저장소에 넣은 파일을 쓴다. -->
+    <script src="exceljs.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" media="print" onload="this.media='all'">
+    <style>
+        :root {
+            --bg: #F6FAF7; --surface: #FFFFFF; --surface-2: #F0F5F2;
+            --line: #D3DED8; --line-strong: #B9C8C0;
+            --ink: #14201B; --ink-2: #44554C; --ink-3: #5C6B63;
+            --accent: #0B6E4F; --accent-hover: #075239; --accent-soft: #E4F3EC; --accent-ring: rgba(11, 110, 79, 0.18);
+            --danger: #9A2A1F; --danger-soft: #FBE5E1;
+            --warn-bg: #FFF3D1; --warn-line: #EBD9A0; --warn-ink: #6B4300;
+            --accent-ink: #075239; --accent-line: #BFE0D0; --dash: #9FB3A8;
+            --sans: 'Gowun Dodum', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
+            --head: 'Jua', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, 'Segoe UI', sans-serif;
+        }
+        /* 다크 모드: 머리글의 버튼으로 바꾼다. 기본은 밝은 모드 (명부 미리보기의 종이는 흰색 그대로) */
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #101714; --surface: #18221E; --surface-2: #212D28;
+            --line: #314039; --line-strong: #47594F;
+            --ink: #E7EFEA; --ink-2: #B5C4BC; --ink-3: #94A69C;
+            --accent: #1B8562; --accent-hover: #23A078; --accent-soft: #163428; --accent-ring: rgba(47, 165, 124, 0.3);
+            --accent-ink: #7BD8B4; --accent-line: #2C5A47;
+            --danger: #F2998E; --danger-soft: #3B201C;
+            --warn-bg: #352C12; --warn-line: #5C4B1D; --warn-ink: #EFD58F; --dash: #56695F;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+        input, select, textarea, button { font-family: inherit; }
+        .app { min-height: 100vh; display: flex; flex-direction: column; font-synthesis: none; }
+        .app-title, .btn, .tab-btn, .step-heading, .step-no, .chip, th, strong, b, .drop-title, .field label { font-family: var(--head); }
+        .top-note { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 8px 40px; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; color: var(--ink-2); }
+        .privacy-note { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; color: var(--accent-ink); font-family: var(--head); }
+        .privacy-note svg { flex: none; transform: translateY(-1.5px); }
+        .app-header { padding: 20px 40px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+        .app-title { font-size: 17px; letter-spacing: -0.01em; }
+        .app-header-side { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 14px; color: var(--ink-2); }
+        .btn { min-height: 44px; padding: 0 18px; border: 1.5px solid transparent; border-radius: 14px; font-size: 15px; cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+        .btn:focus-visible, .tab-btn:focus-visible { outline: 3px solid var(--accent-ring); outline-offset: 2px; }
+        .btn-primary { background: var(--accent); color: #FFFFFF; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+        .btn-secondary:hover { background: var(--surface-2); }
+        .btn-danger { background: transparent; color: var(--danger); min-height: 34px; padding: 0 10px; font-size: 13px; }
+        .btn-danger:hover { background: var(--danger-soft); }
+        .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+        .app-main { padding: 4px 40px 48px; display: flex; flex-direction: column; gap: 20px; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px 26px; display: flex; flex-direction: column; gap: 16px; }
+        .step-head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+        .step-no { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex: none; }
+        .step-heading { font-size: 22px; letter-spacing: -0.01em; }
+        .step-lead { color: var(--ink-2); font-size: 15px; }
+        .step-head .spacer { margin-left: auto; }
+        /* 파일 올리는 곳 */
+        .dropzone { border: 2px dashed var(--dash); border-radius: 18px; padding: 30px 20px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; background: var(--surface-2); transition: background 0.2s, border-color 0.2s; }
+        .dropzone.over { background: var(--accent-soft); border-color: var(--accent); }
+        .drop-title { font-size: 19px; }
+        .drop-sub { font-size: 14px; color: var(--ink-2); }
+        .notice { padding: 12px 16px; border-radius: 14px; font-size: 14px; }
+        .notice.warn { background: var(--warn-bg); color: var(--warn-ink); border: 1px solid var(--warn-line); }
+        .notice.bad { background: var(--danger-soft); color: var(--danger); }
+        .notice.ok { background: var(--accent-soft); color: var(--accent-ink); }
+        .notice ul { margin: 6px 0 0 18px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { padding: 5px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; color: var(--ink-2); }
+        .chip.warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-ink); }
+        .chip.ok { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+        /* 조사서 목록 */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+        table.list { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
+        table.list th { background: var(--surface-2); color: var(--ink-2); font-weight: 400; padding: 10px 10px; text-align: center; border-bottom: 1px solid var(--line); }
+        table.list td { padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--line); }
+        table.list tr:last-child td { border-bottom: none; }
+        table.list tbody tr { cursor: pointer; }
+        table.list tbody tr:hover td { background: var(--surface-2); }
+        table.list tbody tr.selected td { background: var(--accent-soft); }
+        table.list td.left { text-align: left; }
+        .state { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-family: var(--head); }
+        .state.ok { background: var(--accent-soft); color: var(--accent-ink); }
+        .state.warn { background: var(--warn-bg); color: var(--warn-ink); }
+        .detail { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .detail-title { font-family: var(--head); font-size: 17px; }
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 18px; font-size: 14px; }
+        .detail-grid div { display: flex; gap: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 4px; }
+        .detail-grid span:first-child { color: var(--ink-3); flex: none; }
+        .detail-grid span:last-child { margin-left: auto; text-align: right; word-break: break-all; }
+        /* 명부 */
+        .tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); align-self: flex-start; }
+        .tab-btn { min-height: 38px; padding: 0 14px; border: none; border-radius: 10px; background: transparent; color: var(--ink-2); font-size: 14px; cursor: pointer; }
+        .tab-btn:hover { background: var(--surface); color: var(--ink); }
+        .tab-btn.active { background: var(--accent); color: #FFFFFF; }
+        .tab-btn .count { opacity: 0.8; margin-left: 4px; }
+        .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+        .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+        .field input { height: 46px; padding: 0 14px; border: 1.5px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 15px; }
+        .field input:focus { outline: 3px solid var(--accent-ring); border-color: var(--accent); }
+        .field small { color: var(--ink-3); }
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .paper-wrap { overflow-x: auto; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+        .paper { background: #FFFFFF; color: #000000; padding: 26px 22px; margin: 0 auto; width: max-content; min-width: 620px; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18); font-family: '굴림체', GulimChe, 'Malgun Gothic', sans-serif; font-synthesis: weight; }
+        .paper-title { text-align: center; font-size: 20px; font-weight: 700; padding: 6px 0; }
+        .paper-principal { text-align: right; font-size: 14px; padding: 4px 0 6px; }
+        .paper table { border-collapse: collapse; font-size: 13px; }
+        .paper th, .paper td { border: 1px solid #000000; padding: 6px 6px; text-align: center; font-weight: 400; font-family: inherit; white-space: pre-line; }
+        .paper td { white-space: pre; }
+        .empty { color: var(--ink-3); font-size: 15px; padding: 8px 0; }
+        @media (max-width: 768px) { .top-note, .app-header, .app-main { padding-left: 16px; padding-right: 16px; } .card { padding: 18px 16px; } .step-heading { font-size: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="top-note">
+            <p>2027학년도 양산교육지원청 교육공무원 인사관리기준에 따른 내신자 조사서를 취합합니다.</p>
+            <p>작성자: 황산초등학교 윤희류</p>
+            <p>오류 및 개선사항 문의: tmdsh2000@naver.com 혹은 내부메일</p>
+            <p class="privacy-note" title="올린 조사서는 서버로 보내지 않고 브라우저에도 저장하지 않습니다. 창을 닫거나 새로고침하면 사라지고, 내려받은 엑셀 파일만 이 컴퓨터에 남습니다."><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"></path></svg>올린 조사서의 개인정보는 어디에도 전송·저장되지 않습니다</p>
+        </div>
+        <header class="app-header">
+            <div class="app-title">2027학년도 관내전보 학교 관리자 취합 도우미</div>
+            <div class="app-header-side">
+                <a class="btn btn-secondary" href="transfer_application.html">내신자 조사서 도우미</a>
+                <a class="btn btn-secondary" href="insa_standard_2027.pdf" download="2027학년도 양산교육지원청 교육공무원 인사관리기준(유·초등).pdf">인사관리기준 파일</a>
+                <button type="button" id="themeToggle" class="btn btn-secondary" onclick="toggleTheme()">다크 모드</button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="card">
+                <div class="step-head">
+                    <span class="step-no">1</span>
+                    <h1 class="step-heading">조사서 파일 올리기</h1>
+                </div>
+                <p class="step-lead">선생님들이 낸 내신자 조사서 엑셀 파일을 한꺼번에 올려 주세요. 초등·영양·유치원 조사서를 섞어 올려도 교사 구분별로 나누어 줍니다.</p>
+                <div class="dropzone" id="dropzone">
+                    <div class="drop-title">조사서 엑셀 파일을 여기에 끌어다 놓으세요</div>
+                    <div class="drop-sub">여러 개를 한 번에 놓을 수 있고, 나중에 더 올려도 됩니다.</div>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">파일 고르기</button>
+                    <input type="file" id="fileInput" accept=".xlsx,.xlsm" multiple hidden>
+                </div>
+                <div id="loadStatus" aria-live="polite"></div>
+                <div id="failedBox"></div>
+            </section>
+
+            <section class="card" id="listCard" hidden>
+                <div class="step-head">
+                    <span class="step-no">2</span>
+                    <h2 class="step-heading">조사서 내용 확인</h2>
+                    <button type="button" class="btn btn-secondary spacer" onclick="clearAll()">모두 지우기</button>
+                </div>
+                <p class="step-lead">줄을 누르면 조사서에 적힌 내용을 볼 수 있습니다. 고칠 내용이 있으면 선생님이 조사서를 다시 작성해 도장을 찍어 내야 하므로, 여기서는 고치지 않고 해당 줄을 뺀 뒤 새 파일을 올립니다.</p>
+                <div class="chips" id="summaryChips"></div>
+                <div id="issueBox"></div>
+                <div class="table-wrap">
+                    <table class="list">
+                        <thead><tr><th>순</th><th>상태</th><th>교사 구분</th><th>성명</th><th>생년월일</th><th>성별</th><th>현임교</th><th>전보구분</th><th>1희망</th><th>2희망</th><th>3희망</th><th>총점</th><th>경력점</th><th>현임교년수</th><th>파일</th><th></th></tr></thead>
+                        <tbody id="recordRows"></tbody>
+                    </table>
+                </div>
+                <div id="detailBox"></div>
+            </section>
+
+            <section class="card" id="rosterCard" hidden>
+                <div class="step-head">
+                    <span class="step-no">3</span>
+                    <h2 class="step-heading">명부와 제출파일 받기</h2>
+                </div>
+                <p class="step-lead">교사 구분마다 명부 9종이 든 엑셀 파일과 교육지원청에 내는 제출파일을 받습니다. 명부는 엑셀에서 열어 그대로 인쇄하면 됩니다.</p>
+                <div class="tabs" id="groupTabs" role="tablist" aria-label="교사 구분"></div>
+                <div class="fields">
+                    <div class="field">
+                        <label for="principalInput">기관장 (명부 오른쪽 위에 들어갑니다)</label>
+                        <input type="text" id="principalInput" oninput="setGroupSetting('principal', this.value)">
+                    </div>
+                    <div class="field">
+                        <label for="schoolLabelInput">학교 이름 (파일 이름에 들어갑니다)</label>
+                        <input type="text" id="schoolLabelInput" oninput="setGroupSetting('label', this.value)">
+                        <small id="fileNameHint"></small>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-primary" onclick="downloadRosters()">명부 9종 엑셀 받기</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadSubmit()">제출파일 받기</button>
+                    <button type="button" class="btn btn-secondary" id="downloadAllBtn" onclick="downloadEverything()">모든 교사 구분 한꺼번에 받기</button>
+                </div>
+                <div id="downloadStatus" aria-live="polite"></div>
+                <div class="tabs" id="rosterTabs" role="tablist" aria-label="명부 종류"></div>
+                <div class="paper-wrap"><div class="paper" id="rosterPaper"></div></div>
+            </section>
+        </main>
+    </div>
+
+    <script id="rosterSpec">
+        // 작년 학교관리자취합용 엑셀의 명부 9종 서식(열 너비, 머리글, 글꼴, 테두리, 인쇄 설정)을 그대로 옮긴 값
+        const ROSTER_SPEC = {"styles":[{"f":["굴림체",11.0,0],"b":"tttt","a":["center","center",1,0],"n":"General"},{"f":["굴림체",11.0,0],"b":"tttt","a":["center","center",0,1],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"tttt","a":["center","center",0,0],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"tt-t","a":["","",0,0],"n":"General"},{"f":["굴림체",16.0,1],"b":"----","a":["center","center",0,0],"n":"General"},{"f":["굴림체",11.0,0],"b":"----","a":["right","center",0,0],"n":"General"},{"f":["굴림체",11.0,0],"b":"tttt","a":["center","center",0,1],"n":"0.00_ "},{"f":["굴림체",11.0,0],"b":"t-tt","a":["center","center",0,1],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"tttt","a":["","center",0,0],"n":"General"},{"f":["굴림체",12.0,0],"b":"ttt-","a":["center","center",1,0],"n":"General"},{"f":["굴림체",12.0,0],"b":"tttt","a":["center","center",1,0],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"--tt","a":["","",0,0],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"-ttt","a":["","",0,0],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"tt--","a":["","",0,0],"n":"General"},{"f":["굴림체",15.0,1],"b":"----","a":["center","center",0,0],"n":"General"},{"f":["굴림체",12.0,0],"b":"---t","a":["right","center",0,0],"n":"General"},{"f":["굴림체",11.0,0],"b":"---t","a":["right","center",0,0],"n":"General"},{"f":["굴림체",11.0,0],"b":"ttt-","a":["center","center",1,0],"n":"General"},{"f":["굴림체",15.0,1],"b":"----","a":["center","center",0,1],"n":"General"},{"f":["바탕",10.0,0],"b":"----","a":["center","center",0,0],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"----","a":["","",0,0],"n":"General"},{"f":["맑은 고딕",11.0,0],"b":"tttt","a":["","center",0,1],"n":"General"}],"rosters":{"서열명부":{"titleRow":5,"first":9,"cols":15,"title":"서 열 명 부","widths":[4.62,7.5,7.5,6.62,6.62,6.62,3.5,7.5,6.62,5.5,7.5,11.62,11.62,9.0,9.0],"hiddenCols":[],"hiddenRows":[],"firstHeight":24.75,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":24.95,"6":24.95,"7":15.95,"8":15.95},"dataHeight":24.75,"merges":["A5:O5","A6:O6","A7:A8","B7:B8","C7:C8","D7:D8","E7:E8","F7:F8","G7:G8","H7:H8","I7:I8","J7:J8","K7:K8","L7:L8","M7:M8","N7:N8","O7:O8"],"titleStyle":4,"principalStyle":5,"head":[[7,1,"순",0],[7,2,"전보\n구분",0],[7,3,"소속",0],[7,4,"1희망",0],[7,5,"2희망",0],[7,6,"3희망",0],[7,7,"성\n별",0],[7,8,"성명",0],[7,9,"총점",0],[7,10,"현임\n년수",0],[7,11,"경력점",1],[7,12,"생년월일",0],[7,13,"생활근거지",0],[7,14,"발령일",2],[7,15,"비고",2],[8,1,null,3],[8,2,null,3],[8,3,null,3],[8,4,null,3],[8,5,null,3],[8,6,null,3],[8,7,null,3],[8,8,null,3],[8,9,null,3],[8,10,null,3],[8,11,null,3],[8,12,null,3],[8,13,null,3],[8,14,null,3],[8,15,null,3]],"data":[0,1,1,1,1,1,1,1,6,6,6,1,7,8,8],"page":{"orientation":"portrait","paper":9,"scale":80,"hc":true,"margins":[0.1969,0.1969,0.7874,0.5906,0.0,0.0],"titles":"5:8"}},"임용제청서":{"titleRow":5,"first":9,"cols":8,"title":"교육공무원 임용제청서","widths":[6.62,10.62,12.62,10.62,11.75,8.62,10.62,11.62],"hiddenCols":[],"hiddenRows":[],"firstHeight":24.0,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":31.5,"6":25.5,"7":20.25,"8":20.25},"dataHeight":24.0,"merges":["A5:H5","A6:H6","A7:A8","B7:B8","C7:E7","F7:H7"],"titleStyle":14,"principalStyle":15,"head":[[7,1,"순",9],[7,2,"성명",9],[7,3,"제  청",10],[7,4,null,11],[7,5,null,12],[7,6,"현  직",10],[7,7,null,11],[7,8,null,12],[8,1,null,13],[8,2,null,13],[8,3,"전보구분",9],[8,4,"직위",9],[8,5,"부서",9],[8,6,"성별",9],[8,7,"직위",9],[8,8,"부서",9]],"data":[10,1,1,1,1,1,1,1],"page":{"orientation":"portrait","paper":9,"scale":null,"hc":true,"margins":[0.5906,0.5906,0.7874,0.5906,0.0,0.0],"titles":""}},"승진후보자명부":{"titleRow":5,"first":10,"cols":6,"title":"승진후보자 명부","widths":[6.88,17.62,16.75,8.25,16.5,12.38],"hiddenCols":[],"hiddenRows":[],"firstHeight":24.0,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":30.0,"6":30.0,"7":12.0,"8":12.0,"9":12.0},"dataHeight":24.0,"merges":["A5:F5","A6:F6","A7:A9","B7:B9","C7:C9","D7:D9","E7:E9","F7:F9"],"titleStyle":14,"principalStyle":16,"head":[[7,1,"순",0],[7,2,"소속",0],[7,3,"성명",0],[7,4,"성별",0],[7,5,"희망지역",0],[7,6,"비고",0],[8,1,null,13],[8,2,null,13],[8,3,null,13],[8,4,null,13],[8,5,null,13],[8,6,null,13],[9,1,null,3],[9,2,null,3],[9,3,null,3],[9,4,null,3],[9,5,null,3],[9,6,null,3]],"data":[1,1,1,1,1,1],"page":{"orientation":"portrait","paper":9,"scale":null,"hc":true,"margins":[0.7087,0.7087,0.748,0.748,0.315,0.315],"titles":"5:9"}},"장기근속자명부":{"titleRow":5,"first":9,"cols":9,"title":"장기근속자 명부","widths":[6.62,12.62,10.62,8.62,28.62,10.62,10.62,10.62,12.62],"hiddenCols":[5],"hiddenRows":[],"firstHeight":24.0,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":30.0,"6":30.0,"7":21.95,"8":21.95},"dataHeight":24.0,"merges":["A5:I5","A6:I6","A7:A8","B7:B8","C7:C8","D7:D8","E7:E8","F7:H7","I7:I8"],"titleStyle":14,"principalStyle":16,"head":[[7,1,"순",17],[7,2,"소속",17],[7,3,"성명",17],[7,4,"성별",17],[7,5,"만기 사유",0],[7,6,"희망학교",0],[7,7,null,11],[7,8,null,12],[7,9,"비고",17],[8,1,null,13],[8,2,null,13],[8,3,null,13],[8,4,null,13],[8,5,null,3],[8,6,"1희망",17],[8,7,"2희망",17],[8,8,"3희망",17],[8,9,null,13]],"data":[0,1,1,1,1,1,1,1,1],"page":{"orientation":"portrait","paper":9,"scale":null,"hc":true,"margins":[0.5906,0.5906,0.7874,0.5906,0.0,0.0],"titles":"5:8"}},"타시도(군)전보내신자":{"titleRow":5,"first":9,"cols":7,"title":"전보내신자 중 타시도, 타시군 전보 내신자 명부","widths":[5.62,12.62,12.62,8.62,15.62,15.62,11.75],"hiddenCols":[],"hiddenRows":[],"firstHeight":24.95,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":28.5,"6":24.95,"7":20.25,"8":20.25},"dataHeight":24.95,"merges":["A5:G5","A6:G6","A7:A8","B7:B8","C7:C8","D7:D8","E7:F7","G7:G8"],"titleStyle":18,"principalStyle":16,"head":[[7,1,"순",0],[7,2,"소속",0],[7,3,"성명",0],[7,4,"성별",0],[7,5,"전출희망지",0],[7,6,null,12],[7,7,"비고",0],[8,1,null,3],[8,2,null,3],[8,3,null,3],[8,4,null,3],[8,5,"도내희망시군",0],[8,6,"타시도",0],[8,7,null,3]],"data":[1,1,1,1,1,1,1],"page":{"orientation":"portrait","paper":9,"scale":null,"hc":true,"margins":[0.5906,0.5906,0.7874,0.5906,0.0,0.0],"titles":"5:8"}},"부부교직원":{"titleRow":5,"first":10,"cols":8,"title":"전보내신자 중 학교소속 부부(직계존비속) 교직원 명단","widths":[4.38,10.5,9.5,6.5,16.12,16.62,10.62,12.62],"hiddenCols":[],"hiddenRows":[],"firstHeight":38.25,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":30.0,"6":22.5,"7":7.5,"8":21.0,"9":21.0},"dataHeight":34.5,"merges":["A5:H5","A6:H6","A8:A9","B8:B9","C8:C9","D8:D9","E8:E9","F8:G8","H8:H9"],"titleStyle":18,"principalStyle":5,"head":[[7,1,null,19],[7,2,null,20],[7,3,null,20],[7,4,null,20],[7,5,null,20],[7,6,null,20],[7,7,null,20],[7,8,null,20],[8,1,"순",0],[8,2,"소속",0],[8,3,"성명",0],[8,4,"성별",0],[8,5,"전출 희망 학교",0],[8,6,"배우자(직계존비속)",0],[8,7,null,12],[8,8,"비고",0],[9,1,null,3],[9,2,null,3],[9,3,null,3],[9,4,null,3],[9,5,null,3],[9,6,"소속",0],[9,7,"성명",0],[9,8,null,3]],"data":[0,1,1,1,1,1,1,1],"page":{"orientation":"portrait","paper":9,"scale":90,"hc":false,"margins":[0.7087,0.7087,0.748,0.748,0.315,0.315],"titles":"8:9"}},"유예신청자명부":{"titleRow":4,"first":9,"cols":7,"title":"유예 신청자 명부","widths":[5.62,9.62,10.88,10.88,6.88,23.62,19.62],"hiddenCols":[],"hiddenRows":[],"firstHeight":38.25,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":30.0,"5":20.25,"6":21.95,"7":21.95,"8":21.95},"dataHeight":37.5,"merges":["A4:G4","A5:G5","A6:A8","B6:B8","C6:C8","D6:D8","E6:E8","F6:F8","G6:G8"],"titleStyle":14,"principalStyle":16,"head":[[6,1,"순",0],[6,2,"소속",0],[6,3,"성 명",0],[6,4,"생년월일",0],[6,5,"성별",0],[6,6,"사  유",0],[6,7,"증빙서류",0],[7,1,null,13],[7,2,null,13],[7,3,null,13],[7,4,null,13],[7,5,null,13],[7,6,null,13],[7,7,null,13],[8,1,null,3],[8,2,null,3],[8,3,null,3],[8,4,null,3],[8,5,null,3],[8,6,null,3],[8,7,null,3]],"data":[0,1,1,1,1,0,0],"page":{"orientation":"portrait","paper":9,"scale":null,"hc":true,"margins":[0.3937,0.3937,0.748,0.748,0.315,0.315],"titles":"6:8"}},"전보우선자명부":{"titleRow":5,"first":9,"cols":7,"title":"전보우선자 명부","widths":[3.62,7.0,7.88,9.25,5.62,35.62,18.38],"hiddenCols":[],"hiddenRows":[],"firstHeight":38.25,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":30.0,"6":30.0,"7":24.75,"8":27.0},"dataHeight":37.5,"merges":["A5:G5","A6:G6","A7:A8","B7:B8","C7:C8","D7:D8","E7:E8","F7:F8","G7:G8"],"titleStyle":14,"principalStyle":16,"head":[[7,1,"순",17],[7,2,"소속",17],[7,3,"성 명",17],[7,4,"생년월일",17],[7,5,"성별",17],[7,6,"전보 우선 사유",0],[7,7,"증빙서류",17],[8,1,null,13],[8,2,null,13],[8,3,null,13],[8,4,null,13],[8,5,null,13],[8,6,null,3],[8,7,null,13]],"data":[0,1,1,1,1,1,0],"page":{"orientation":"portrait","paper":9,"scale":null,"hc":true,"margins":[0.3937,0.3937,0.748,0.748,0.315,0.315],"titles":"5:8"}},"과원전보내신자명부":{"titleRow":5,"first":9,"cols":12,"title":"과원 전보내신자 명부","widths":[4.62,7.5,8.12,8.12,8.12,3.5,7.5,6.62,5.5,7.5,11.62,30.62],"hiddenCols":[],"hiddenRows":[],"firstHeight":24.75,"heights":{"1":9.95,"2":20.25,"3":9.95,"4":6.0,"5":24.95,"6":24.95,"7":15.95,"8":15.95},"dataHeight":24.75,"merges":["A5:L5","A6:L6","A7:A8","B7:B8","C7:C8","D7:D8","E7:E8","F7:F8","G7:G8","H7:H8","I7:I8","J7:J8","K7:K8","L7:L8"],"titleStyle":4,"principalStyle":5,"head":[[7,1,"순",0],[7,2,"소속",0],[7,3,"1희망",0],[7,4,"2희망",0],[7,5,"3희망",0],[7,6,"성\n별",0],[7,7,"성명",0],[7,8,"총점",0],[7,9,"현임\n년수",0],[7,10,"경력점",1],[7,11,"생년월일",0],[7,12,"과원 전보내신자 희망",2],[8,1,null,3],[8,2,null,3],[8,3,null,3],[8,4,null,3],[8,5,null,3],[8,6,null,3],[8,7,null,3],[8,8,null,3],[8,9,null,3],[8,10,null,3],[8,11,null,3],[8,12,null,3]],"data":[0,1,1,1,1,1,1,6,6,6,1,21],"page":{"orientation":"portrait","paper":9,"scale":80,"hc":true,"margins":[0.1969,0.1969,0.7874,0.5906,0.0,0.0],"titles":"5:8"}}},"data":{"widths":[4.88,7.12,6.25,6.25,6.25,5.25,5.25,6.5,11.0,7.12,11.0,9.0,9.0,11.0,11.0,11.0,13.75,13.75,13.75,13.75,16.5,16.5,22.75,28.25,23.88,23.88,10.0,10.0,10.0,10.0,19.25,8.43,18.25],"merges":["AA1:AD1","AE1:AF1","B1:P1","Q1:Z1"],"row1":{"B1":"기본 입력 항목1","Q1":"추가 입력 항목","AA1":"기본 입력 항목2","AE1":"양산(김해) 기본 입력 항목","AG1":"양산 기본 추가 항목"},"row2":["순","현임교","1희망","2희망","3희망","성별","성명","총점","현임교년수","경력점","생활근거지","생년월일","전보구분","타시군내신","타시도내신","승진후보자 ","승진 희망지역","과원 전보희망","전보우선 사유","전보유예 사유","부부 교직원 성명","부부 교직원 소속","직계존비속 교직원1 성명","직계존비속 교직원1 소속","직계존비속 교직원2 성명","직계존비속 교직원2 소속","통합1희망","통합2희망","통합3희망","통합4희망","전입 가산점","비고","교사 구분"],"fills":{"A1":"FFFFC000","B1":"FFFFFF00","Q1":"theme6","AA1":"FFFFFF00","AE1":"FFFFFF00","AG1":"theme9"},"h1":17.25}};
+    </script>
+    <script>
+        // ───────── 조사서에서 읽는 칸 (작년 취합용 엑셀의 '기초자료' 시트와 같은 주소) ─────────
+        const FIELD_CELLS = {
+            school: 'D7', hope1: 'H5', hope2: 'M5', hope3: 'P5', gender: 'M7', name: 'H7', yearsHere: 'H10', home: 'P7', birth: 'N10',
+            kind: 'D5', otherCity: 'H8', otherProvince: 'M8', promotion: 'P8', promotionRegion: 'F48', surplus: 'F49', priority: 'F50', defer: 'F51',
+            spouseName: 'F52', spouseSchool: 'F53', rel1Name: 'F54', rel1School: 'F55', rel2Name: 'F56', rel2School: 'F57',
+            merged1: 'D6', merged2: 'H6', merged3: 'M6', note: 'P10'
+        };
+        const REQUIRED_FIELDS = [['name', '성명'], ['birth', '생년월일'], ['gender', '성별'], ['school', '현임교'], ['kind', '전보구분'], ['hope1', '1희망']];
+        // 교사 구분 (조사서 제목의 괄호 안 글자). 이 순서대로 보여 준다.
+        const TEACHER_TYPES = ['초등 교사', '초등 특수교사', '초등 상담교사', '초등 사서교사', '초등 보건교사', '영양교사', '유치원 교사', '유치원 보건교사', '유치원 특수교사'];
+        const SINGLE_KINDERGARTENS = ['양산유', '오봉유', '물금유', '동면유', '명동유', '사송유'];
+
+        let records = [];          // 읽어 들인 조사서
+        let failedFiles = [];      // 읽지 못한 파일
+        let nextId = 1;
+        let selectedId = null;     // 내용을 펼쳐 보는 조사서
+        let currentGroup = null;   // 보고 있는 교사 구분
+        let currentRoster = 0;     // 보고 있는 명부 번호
+        const groupSettings = {};  // 교사 구분별로 직접 고친 기관장·학교 이름
+
+        // ───────── 화면 공통 ─────────
+        function toggleTheme() {
+            const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = next;
+            try { localStorage.setItem('transferTheme', next); } catch (error) {}
+            updateThemeButton();
+        }
+        function updateThemeButton() {
+            const button = document.getElementById('themeToggle');
+            const dark = document.documentElement.dataset.theme === 'dark';
+            button.textContent = dark ? '밝은 모드' : '다크 모드';
+            button.setAttribute('aria-pressed', dark ? 'true' : 'false');
+        }
+        function esc(value) {
+            return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+        }
+        function showScore(value) {
+            return typeof value === 'number' ? value.toFixed(3) : esc(value);
+        }
+
+        // ───────── 엑셀 칸 읽기 ─────────
+        function plainValue(value) {
+            if (value === null || value === undefined) return '';
+            if (value instanceof Date) {
+                const pad = n => String(n).padStart(2, '0');
+                return `${value.getUTCFullYear()}.${pad(value.getUTCMonth() + 1)}.${pad(value.getUTCDate())}`;
+            }
+            if (typeof value === 'object') {
+                if (Array.isArray(value.richText)) return value.richText.map(part => part.text).join('').trim();
+                if ('result' in value) return plainValue(value.result);
+                if ('formula' in value || 'sharedFormula' in value || 'error' in value) return '';
+                if ('text' in value) return plainValue(value.text);
+                return '';
+            }
+            return typeof value === 'string' ? value.trim() : value;
+        }
+        // 병합된 칸의 왼쪽 위가 아닌 칸은 빈 칸으로 본다 (엑셀에서 읽을 때와 같게)
+        function readCell(sheet, address) {
+            const cell = sheet.getCell(address);
+            if (cell.isMerged && cell.master && cell.master.address !== cell.address) return '';
+            return plainValue(cell.value);
+        }
+        function formulaOf(sheet, address) {
+            const cell = sheet.getCell(address);
+            return typeof cell.formula === 'string' ? cell.formula.replace(/\s+/g, '') : '';
+        }
+        function sumOfFormulaRange(sheet, formula) {
+            const match = /SUM\(\$?([A-Z]+)\$?(\d+):\$?([A-Z]+)\$?(\d+)\)/.exec(formula);
+            if (!match || match[1] !== match[3]) return null;
+            let total = 0;
+            for (let row = Number(match[2]); row <= Number(match[4]); row++) {
+                const value = readCell(sheet, match[1] + row);
+                if (typeof value === 'number') total += value;
+            }
+            return total;
+        }
+        const round3 = value => Math.round(value * 1000) / 1000;
+
+        // 총점 = 학교경력점 + 가산점. 조사서의 수식이 가리키는 범위를 직접 더한다.
+        // (도우미로 만든 파일은 엑셀에서 열어 저장하기 전까지 수식 결과가 비어 있기 때문. 교육실습협력학교 가산점은 더하지 않는다.)
+        function computeScores(sheet) {
+            const stored = readCell(sheet, 'D9');
+            const career = sumOfFormulaRange(sheet, formulaOf(sheet, 'Q12'));
+            const bonusCell = /Q12\+([A-Z]+\d+)/.exec(formulaOf(sheet, 'D9'));
+            const bonus = bonusCell ? sumOfFormulaRange(sheet, formulaOf(sheet, bonusCell[1])) : null;
+            if (career === null || bonus === null) {
+                return { total: stored, careerScore: readCell(sheet, 'K10'), stored, verified: false };
+            }
+            return { total: round3(career + bonus), careerScore: round3(career), stored, verified: true };
+        }
+
+        function teacherTypeOf(sheet) {
+            const title = String(readCell(sheet, 'B3'));
+            const open = title.indexOf('(');
+            if (open >= 0 && title.length > open + 1) return title.slice(open + 1, -1).trim();   // 조사서 A1 칸의 수식과 같은 방법
+            return String(readCell(sheet, 'A1'));
+        }
+
+        function recordFromSheet(sheet, fileName) {
+            const title = String(readCell(sheet, 'B3'));
+            if (!title.includes('조사서')) return null;
+            const fields = {};
+            Object.entries(FIELD_CELLS).forEach(([key, address]) => { fields[key] = readCell(sheet, address); });
+            const scores = computeScores(sheet);
+            const own = [];
+            const missing = REQUIRED_FIELDS.filter(([key]) => fields[key] === '').map(([, label]) => label);
+            if (missing.length) own.push(`빈 칸: ${missing.join(', ')}`);
+            if (fields.birth !== '' && !/^\d{4}\.\d{2}\.\d{2}$/.test(String(fields.birth))) own.push(`생년월일 형식이 다름 (${fields.birth})`);
+            const type = teacherTypeOf(sheet);
+            if (!type) own.push('제목에서 교사 구분을 읽지 못함');
+            else if (!TEACHER_TYPES.includes(type)) own.push(`교사 구분이 양식에 없는 값 (${type})`);
+            if (!scores.verified) own.push('총점 수식이 양식과 달라 파일에 저장된 값을 그대로 씀');
+            else if (typeof scores.stored === 'number' && Math.abs(scores.stored - scores.total) > 0.0005) own.push(`파일에 적힌 총점(${scores.stored.toFixed(3)})과 다시 더한 총점(${scores.total.toFixed(3)})이 다름`);
+            if (scores.total === '' || scores.total === 0) own.push('총점이 비어 있음');
+            return { id: nextId++, fileName, sheetName: sheet.name, type: type || '(교사 구분 없음)', f: fields, total: scores.total, careerScore: scores.careerScore, own, issues: [] };
+        }
+
+        async function readFile(file) {
+            if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
+                failedFiles.push({ fileName: file.name, reason: '엑셀 파일(xlsx)이 아닙니다.' });
+                return;
+            }
+            try {
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(await file.arrayBuffer());
+                const sheets = workbook.worksheets.filter(sheet => sheet.name.startsWith('내신조사서'));
+                const found = sheets.map(sheet => recordFromSheet(sheet, file.name)).filter(Boolean);
+                if (!found.length) {
+                    failedFiles.push({ fileName: file.name, reason: sheets.length ? '내신자 조사서 양식이 아닙니다.' : "'내신조사서' 시트가 없습니다." });
+                    return;
+                }
+                records.push(...found);
+            } catch (error) {
+                failedFiles.push({ fileName: file.name, reason: '파일을 열 수 없습니다. 엑셀에서 열리는 파일인지 확인해 주세요.' });
+            }
+        }
+
+        async function addFiles(fileList) {
+            const files = Array.from(fileList || []);
+            if (!files.length) return;
+            const status = document.getElementById('loadStatus');
+            failedFiles = [];
+            const before = records.length;
+            for (let i = 0; i < files.length; i++) {
+                status.innerHTML = `<div class="notice ok">조사서를 읽는 중입니다… (${i + 1} / ${files.length})</div>`;
+                await readFile(files[i]);
+            }
+            const added = records.length - before;
+            status.innerHTML = added ? `<div class="notice ok">조사서 ${added}건을 읽었습니다.</div>` : '';
+            document.getElementById('fileInput').value = '';
+            refresh();
+        }
+
+        function removeRecord(id, event) {
+            if (event) event.stopPropagation();
+            records = records.filter(record => record.id !== id);
+            if (selectedId === id) selectedId = null;
+            refresh();
+        }
+        function clearAll() {
+            if (!records.length || !confirm('올린 조사서를 모두 지울까요?')) return;
+            records = []; failedFiles = []; selectedId = null;
+            document.getElementById('loadStatus').innerHTML = '';
+            refresh();
+        }
+
+        // ───────── 확인이 필요한 내용 찾기 ─────────
+        function personKey(record) { return `${record.f.name}|${record.f.birth}`; }
+        function majoritySchool(list) {
+            const count = {};
+            list.forEach(record => { if (record.f.school !== '') count[record.f.school] = (count[record.f.school] || 0) + 1; });
+            return Object.keys(count).sort((a, b) => count[b] - count[a])[0] || '';
+        }
+        function recheck() {
+            const people = {};
+            records.forEach(record => { if (record.f.name !== '') (people[personKey(record)] = people[personKey(record)] || []).push(record); });
+            records.forEach(record => {
+                record.issues = record.own.slice();
+                if (record.f.name !== '' && people[personKey(record)].length > 1) record.issues.push('같은 사람의 조사서가 두 번 올라옴 (옛 파일을 빼 주세요)');
+                const school = majoritySchool(groupRecords(record.type));
+                if (record.f.school !== '' && school && record.f.school !== school) record.issues.push(`현임교가 다른 조사서(${school})와 다름`);
+            });
+        }
+
+        // ───────── 교사 구분별 묶음 ─────────
+        function groupNames() {
+            const present = [...new Set(records.map(record => record.type))];
+            return present.sort((a, b) => {
+                const ia = TEACHER_TYPES.indexOf(a), ib = TEACHER_TYPES.indexOf(b);
+                return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b, 'ko');
+            });
+        }
+        function groupRecords(type) { return records.filter(record => record.type === type); }
+        function familyOf(type) { return type === '영양교사' ? 'nutrition' : (type.startsWith('유치원') ? 'kindergarten' : 'elementary'); }
+
+        // 조사서 '학교장' 칸의 수식과 같은 규칙
+        function defaultPrincipal(type, school) {
+            const family = familyOf(type);
+            if (!school) return family === 'kindergarten' ? 'ㅇㅇ(ㅇㅇ초병설)유치원장' : 'ㅇㅇ초등학교장';
+            if (family === 'nutrition') return school === '양산희망' ? '양산희망학교' : (school.endsWith('중') ? school + '학교장' : school + '등학교장');
+            if (family === 'kindergarten') return SINGLE_KINDERGARTENS.includes(school) ? school + '치원장' : school + '초등학교병설유치원장';
+            if (school === '이천') return '원동초등학교장';
+            if (school === '양산교육지원청') return '양산교육지원청교육장';
+            return school + '초등학교장';
+        }
+        function defaultSchoolLabel(type, school) {
+            const family = familyOf(type);
+            if (!school) return family === 'kindergarten' ? 'OO유치원' : 'OO초';
+            if (family === 'nutrition') return school;
+            if (family === 'kindergarten') return SINGLE_KINDERGARTENS.includes(school) ? school + '치원' : school + '초병설유치원';
+            if (school === '이천') return '원동초 이천분교';
+            if (school === '양산교육지원청') return school;
+            return school + '초';
+        }
+        function settingOf(type) {
+            const school = String(majoritySchool(groupRecords(type)));
+            const custom = groupSettings[type] || {};
+            return {
+                principal: custom.principal !== undefined ? custom.principal : defaultPrincipal(type, school),
+                label: custom.label !== undefined ? custom.label : defaultSchoolLabel(type, school)
+            };
+        }
+        function setGroupSetting(key, value) {
+            if (!currentGroup) return;
+            (groupSettings[currentGroup] = groupSettings[currentGroup] || {})[key] = value;
+            renderFileNameHint();
+            renderRosterPaper();
+        }
+        const safeFileName = text => String(text).replace(/[\\/:*?"<>|]/g, '').trim();
+        function fileNames(type) {
+            const label = safeFileName(settingOf(type).label) || '학교';
+            return { rosters: `${label}_관내전보_명부(${safeFileName(type)}).xlsx`, submit: `${label}_관내전보_제출파일(${safeFileName(type)}).xlsx` };
+        }
+
+        // ───────── 명부 9종 (작년 취합용 엑셀의 매크로와 같은 규칙) ─────────
+        // 엑셀 정렬과 같은 순서: 숫자 → 글자, 빈 칸은 늘 맨 뒤
+        function excelCompare(a, b, descending) {
+            const rank = value => (value === '' || value === null || value === undefined) ? 2 : (typeof value === 'number' ? 0 : 1);
+            const ra = rank(a), rb = rank(b);
+            if (ra === 2 || rb === 2) return ra - rb;
+            const result = ra !== rb ? ra - rb : (ra === 0 ? a - b : String(a).localeCompare(String(b), 'ko'));
+            return descending ? -result : result;
+        }
+        // 1희망(오름) → 총점(내림) → 현임교년수(내림) → 경력점(내림) → 생년월일(오름)
+        function rankSort(list) {
+            return list.slice().sort((a, b) =>
+                excelCompare(a.f.hope1, b.f.hope1) || excelCompare(a.total, b.total, true) || excelCompare(a.f.yearsHere, b.f.yearsHere, true) ||
+                excelCompare(a.careerScore, b.careerScore, true) || excelCompare(a.f.birth, b.f.birth));
+        }
+        const filled = value => value !== '' && value !== null && value !== undefined;
+        // scoreCols: 총점·경력점 열(조사서처럼 소수 셋째 자리까지 보여 준다), yearCols: 현임교년수 열(둘째 자리까지)
+        const ROSTERS = [
+            { sheet: '서열명부', perPage: 33, end: ['- 이하', '여백 -'], scoreCols: [9, 11], yearCols: [10],
+              rows: list => rankSort(list).map(r => [r.f.kind, r.f.school, r.f.hope1, r.f.hope2, r.f.hope3, r.f.gender, r.f.name, r.total, r.f.yearsHere, r.careerScore, r.f.birth, r.f.home, '', r.f.note]) },
+            { sheet: '임용제청서', perPage: 26, end: ['- 이하', '여백 -'],
+              rows: list => list.map(r => [r.f.name, r.f.kind, '교사', r.f.hope1, r.f.gender, '교사', r.f.school]) },
+            { sheet: '승진후보자명부', perPage: 26, end: ['- 이하 여백 -'], none: ['- 해당사항 없음 -'], noneEnd: 35,
+              rows: list => list.filter(r => r.f.promotion === '예').map(r => [r.f.school, r.f.name, r.f.gender, r.f.promotionRegion]) },
+            { sheet: '장기근속자명부', perPage: 25, end: ['- 이하 여백 -'], none: ['- 해당사항 없음 -'], noneEnd: 34,
+              rows: list => list.filter(r => r.f.kind === '만기').map(r => [r.f.school, r.f.name, r.f.gender, '', r.f.hope1, r.f.hope2, r.f.hope3, r.f.note]) },
+            { sheet: '타시도(군)전보내신자', perPage: 25, end: ['- 이하 여백 -'], none: ['- 해당사항 없음 -'], noneEnd: 33,
+              rows: list => list.filter(r => filled(r.f.otherCity) || filled(r.f.otherProvince)).map(r => [r.f.school, r.f.name, r.f.gender, r.f.otherCity, r.f.otherProvince]) },
+            { sheet: '부부교직원', perPage: 20, end: ['- 이하 여백 -'], none: ['- 해당사항 없음 -'], noneEnd: 29,
+              rows: list => list.flatMap(r => [['spouseName', 'spouseSchool'], ['rel1Name', 'rel1School'], ['rel2Name', 'rel2School']]
+                  .filter(([name, school]) => filled(r.f[name]) || filled(r.f[school]))
+                  .map(([name, school]) => [r.f.school, r.f.name, r.f.gender, r.f.hope1, r.f[school], r.f[name]])) },
+            { sheet: '유예신청자명부', perPage: 16, end: ['- 이하', '여백 -'], none: ['- 해당사항', '없음 -'], noneEnd: 24,
+              rows: list => list.filter(r => filled(r.f.defer)).map(r => [r.f.school, r.f.name, r.f.birth, r.f.gender, r.f.defer, '사유서 1부\n학교장확인서 1부']) },
+            { sheet: '전보우선자명부', perPage: 15, end: ['- 이하', '여백 -'], none: ['- 해당사항', '없음 -'], noneEnd: 23,
+              rows: list => list.filter(r => filled(r.f.priority)).map(r => [r.f.school, r.f.name, r.f.birth, r.f.gender, r.f.priority, '']) },
+            { sheet: '과원전보내신자명부', perPage: 33, end: ['- 이하', '여백 -'], none: ['  - 해당', '사항없음 -'], noneEnd: 41, scoreCols: [8, 10], yearCols: [9],
+              rows: list => rankSort(list.filter(r => filled(r.f.surplus))).map(r => [r.f.school, r.f.hope1, r.f.hope2, r.f.hope3, r.f.gender, r.f.name, r.total, r.f.yearsHere, r.careerScore, r.f.birth, r.f.surplus]) }
+        ];
+
+        // 명부 한 장의 내용: 제목, 기관장, 줄(순 다음 칸부터), 인쇄할 마지막 줄
+        function buildRoster(definition, type) {
+            const spec = ROSTER_SPEC.rosters[definition.sheet];
+            const rows = definition.rows(groupRecords(type));
+            const count = rows.length;
+            const lines = rows.slice();
+            let printEnd;
+            if (!count && definition.none) {
+                lines.push(definition.none);
+                printEnd = definition.noneEnd;
+            } else {
+                lines.push(definition.end);
+                printEnd = definition.perPage * Math.ceil(count / definition.perPage) + spec.first - 1;   // 쪽 단위로 빈 줄을 채워 인쇄
+            }
+            return { spec, definition, count, lines, printEnd, title: `${spec.title}(${type})`, principal: settingOf(type).principal };
+        }
+
+        const columnNumber = letters => letters.split('').reduce((sum, ch) => sum * 26 + ch.charCodeAt(0) - 64, 0);
+        const columnLetter = number => { let text = ''; for (let n = number; n > 0; n = Math.floor((n - 1) / 26)) text = String.fromCharCode(65 + (n - 1) % 26) + text; return text; };
+        function parseRange(range) {
+            const match = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(range);
+            return { c1: columnNumber(match[1]), r1: Number(match[2]), c2: columnNumber(match[3]), r2: Number(match[4]) };
+        }
+
+        // ───────── 명부 미리보기 ─────────
+        function rosterText(definition, column, value) {
+            if (value === undefined || value === null) return '';
+            if (typeof value !== 'number') return value;
+            if ((definition.scoreCols || []).includes(column)) return value.toFixed(3);
+            if ((definition.yearCols || []).includes(column)) return value.toFixed(2);
+            return value;
+        }
+        function rosterHtml(roster) {
+            const spec = roster.spec;
+            const merges = spec.merges.map(parseRange);
+            const headStart = spec.titleRow + 2;
+            let html = `<div class="paper-title">${esc(roster.title)}</div><div class="paper-principal">${esc(roster.principal)}</div><table><colgroup>`;
+            const shown = column => !spec.hiddenCols.includes(column);   // 원본에서 숨겨 둔 열은 화면에도 그리지 않는다
+            html += spec.widths.map((width, index) => shown(index + 1) ? `<col style="width:${Math.round(width * 8.2)}px">` : '').join('') + '</colgroup><thead>';
+            for (let row = headStart; row < spec.first; row++) {
+                const cells = spec.head.filter(cell => cell[0] === row);
+                const inMerge = merges.some(merge => row >= merge.r1 && row <= merge.r2 && merge.r1 >= headStart);
+                if (!inMerge && cells.every(cell => cell[2] === null)) continue;   // 머리글 위의 빈 줄
+                html += '<tr>';
+                cells.forEach(([r, c, value]) => {
+                    const merge = merges.find(m => r >= m.r1 && r <= m.r2 && c >= m.c1 && c <= m.c2);
+                    if (!shown(c) || (merge && (merge.r1 !== r || merge.c1 !== c))) return;
+                    const span = merge ? ` rowspan="${merge.r2 - merge.r1 + 1}" colspan="${merge.c2 - merge.c1 + 1}"` : '';
+                    html += `<th${span}>${esc(value || '')}</th>`;
+                });
+                html += '</tr>';
+            }
+            html += '</thead><tbody>';
+            roster.lines.forEach((line, index) => {
+                html += `<tr><td>${index + 1}</td>`;
+                for (let c = 0; c < spec.cols - 1; c++) if (shown(c + 2)) html += `<td>${esc(rosterText(roster.definition, c + 2, line[c]))}</td>`;
+                html += '</tr>';
+            });
+            return html + '</tbody></table>';
+        }
+
+        // ───────── 엑셀 파일 만들기 ─────────
+        const BORDER_STYLES = { t: 'thin', m: 'medium', h: 'hair', d: 'double' };
+        function applyStyle(cell, style) {
+            cell.font = { name: style.f[0], size: style.f[1], bold: !!style.f[2] };
+            const border = {};
+            ['left', 'right', 'top', 'bottom'].forEach((side, index) => { if (BORDER_STYLES[style.b[index]]) border[side] = { style: BORDER_STYLES[style.b[index]] }; });
+            cell.border = border;
+            const alignment = {};
+            if (style.a[0]) alignment.horizontal = style.a[0];
+            if (style.a[1]) alignment.vertical = style.a[1] === 'center' ? 'middle' : style.a[1];
+            if (style.a[2]) alignment.wrapText = true;
+            if (style.a[3]) alignment.shrinkToFit = true;
+            cell.alignment = alignment;
+            if (style.n && style.n !== 'General') cell.numFmt = style.n;
+        }
+
+        function addRosterSheet(workbook, definition, type) {
+            const roster = buildRoster(definition, type);
+            const spec = roster.spec, styles = ROSTER_SPEC.styles, lastColumn = columnLetter(spec.cols);
+            const lastRow = Math.max(roster.printEnd, spec.first + roster.lines.length - 1);
+            const page = spec.page;
+            const sheet = workbook.addWorksheet(definition.sheet, { pageSetup: {
+                paperSize: page.paper, orientation: page.orientation, horizontalCentered: page.hc,
+                margins: { left: page.margins[0], right: page.margins[1], top: page.margins[2], bottom: page.margins[3], header: page.margins[4], footer: page.margins[5] },
+                printArea: `A${spec.titleRow}:${lastColumn}${roster.printEnd}`
+            } });
+            if (page.scale) sheet.pageSetup.scale = page.scale;
+            if (page.titles) sheet.pageSetup.printTitlesRow = page.titles;
+            spec.widths.forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
+            spec.hiddenCols.forEach(column => { sheet.getColumn(column).hidden = true; });   // 원본에서 숨겨 둔 열 (장기근속자명부의 만기 사유)
+            Object.entries(spec.heights).forEach(([row, height]) => { if (height) sheet.getRow(Number(row)).height = height; });
+            for (let c = 1; c <= spec.cols; c++) {
+                applyStyle(sheet.getCell(spec.titleRow, c), styles[spec.titleStyle]);
+                applyStyle(sheet.getCell(spec.titleRow + 1, c), styles[spec.principalStyle]);
+            }
+            sheet.getCell(spec.titleRow, 1).value = roster.title;
+            sheet.getCell(spec.titleRow + 1, 1).value = roster.principal;
+            spec.head.forEach(([r, c, value, styleIndex]) => {
+                const cell = sheet.getCell(r, c);
+                if (value !== null) cell.value = value;
+                applyStyle(cell, styles[styleIndex]);
+            });
+            spec.merges.forEach(range => sheet.mergeCells(range));
+            for (let row = spec.first; row <= lastRow; row++) {
+                const line = roster.lines[row - spec.first] || [];
+                sheet.getRow(row).height = row === spec.first ? spec.firstHeight : spec.dataHeight;
+                for (let c = 1; c <= spec.cols; c++) {
+                    const cell = sheet.getCell(row, c);
+                    const value = c === 1 ? row - spec.first + 1 : line[c - 2];
+                    if (value !== undefined && value !== '') cell.value = value;
+                    applyStyle(cell, styles[spec.data[c - 1]]);
+                    if ((definition.scoreCols || []).includes(c)) cell.numFmt = '0.000_ ';
+                }
+            }
+        }
+
+        function buildRosterWorkbook(type) {
+            const workbook = new ExcelJS.Workbook();
+            ROSTERS.forEach(definition => addRosterSheet(workbook, definition, type));
+            return workbook;
+        }
+
+        // 제출파일: 작년과 같은 '자료' 시트. 줄 순서와 열 위치를 그대로 두어 교육지원청 취합 프로그램에서 읽을 수 있게 한다.
+        // 교육실습협력학교 전입 가산점 열(AE)은 올해부터 쓰지 않아 비워 둔다.
+        function submitRowOf(record, order) {
+            const f = record.f;
+            return [order, f.school, f.hope1, f.hope2, f.hope3, f.gender, f.name, record.total, f.yearsHere, record.careerScore, f.home, f.birth, f.kind,
+                f.otherCity, f.otherProvince, f.promotion, f.promotionRegion, f.surplus, f.priority, f.defer, f.spouseName, f.spouseSchool,
+                f.rel1Name, f.rel1School, f.rel2Name, f.rel2School, f.merged1, f.merged2, f.merged3, '', '', f.note, record.type];
+        }
+        function buildSubmitWorkbook(type) {
+            const data = ROSTER_SPEC.data;
+            const workbook = new ExcelJS.Workbook();
+            workbook.addWorksheet('Sheet1');
+            const sheet = workbook.addWorksheet('자료');
+            const thin = { style: 'thin' }, box = { left: thin, right: thin, top: thin, bottom: thin };
+            const font = { name: '맑은 고딕', size: 11 };
+            const headers = data.row2.slice();
+            if (familyOf(type) === 'nutrition') headers.splice(22, 4, '직계존비속 교직원 성명', '직계존비속 교직원 소속', '직계존비속 학생 성명', '직계존비속 학생 소속');
+            headers[30] = '(사용 안 함)';
+            const fills = { B1: 'FFFFFF00', Q1: 'FFDBDBDB', AA1: 'FFFFFF00', AE1: 'FFFFFF00', AG1: 'FFC6E0B4' };
+            data.widths.forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
+            sheet.getRow(1).height = data.h1;
+            const list = groupRecords(type);
+            const countCell = sheet.getCell('A1');
+            countCell.value = { formula: 'COUNTA(A3:A1002)', result: list.length };
+            countCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC000' } };
+            countCell.border = { left: { style: 'medium' }, right: { style: 'medium' }, top: { style: 'medium' }, bottom: { style: 'medium' } };
+            countCell.alignment = { horizontal: 'center' };
+            countCell.font = font;
+            for (let c = 2; c <= 33; c++) {
+                const top = sheet.getCell(1, c);
+                top.border = box; top.alignment = { horizontal: 'center' }; top.font = font;
+                const head = sheet.getCell(2, c);
+                head.value = headers[c - 1]; head.border = box; head.alignment = { horizontal: 'center' }; head.font = font;
+            }
+            const first = sheet.getCell(2, 1);
+            first.value = headers[0]; first.border = box; first.alignment = { horizontal: 'center' }; first.font = font;
+            Object.entries(data.row1).forEach(([address, text]) => {
+                const cell = sheet.getCell(address);
+                cell.value = text;
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fills[address] || 'FFFFFF00' } };
+            });
+            data.merges.forEach(range => sheet.mergeCells(range));
+            list.forEach((record, index) => {
+                submitRowOf(record, index + 1).forEach((value, column) => {
+                    const cell = sheet.getCell(index + 3, column + 1);
+                    if (value !== '' && value !== undefined) cell.value = value;
+                    cell.font = font;
+                    cell.alignment = { horizontal: 'center' };
+                });
+            });
+            return workbook;
+        }
+
+        async function saveWorkbook(workbook, fileName) {
+            const buffer = await workbook.xlsx.writeBuffer();
+            const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+            const link = document.createElement('a');
+            link.href = url; link.download = fileName;
+            document.body.appendChild(link); link.click(); link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+        function showDownloadStatus(text, kind) {
+            document.getElementById('downloadStatus').innerHTML = text ? `<div class="notice ${kind || 'ok'}">${text}</div>` : '';
+        }
+        function confirmIssues(types) {
+            const count = records.filter(record => types.includes(record.type) && record.issues.length).length;
+            return !count || confirm(`확인이 필요한 조사서가 ${count}건 있습니다. 그대로 파일을 만들까요?`);
+        }
+        async function downloadRosters() {
+            if (!currentGroup || !confirmIssues([currentGroup])) return;
+            const name = fileNames(currentGroup).rosters;
+            await saveWorkbook(buildRosterWorkbook(currentGroup), name);
+            showDownloadStatus(`${esc(name)} 파일을 받았습니다.`);
+        }
+        async function downloadSubmit() {
+            if (!currentGroup || !confirmIssues([currentGroup])) return;
+            const name = fileNames(currentGroup).submit;
+            await saveWorkbook(buildSubmitWorkbook(currentGroup), name);
+            showDownloadStatus(`${esc(name)} 파일을 받았습니다.`);
+        }
+        async function downloadEverything() {
+            const types = groupNames();
+            if (!types.length || !confirmIssues(types)) return;
+            for (const type of types) {
+                await saveWorkbook(buildRosterWorkbook(type), fileNames(type).rosters);
+                await saveWorkbook(buildSubmitWorkbook(type), fileNames(type).submit);
+                await new Promise(resolve => setTimeout(resolve, 300));   // 브라우저가 여러 파일 받기를 막지 않도록 조금 쉰다
+            }
+            showDownloadStatus(`교사 구분 ${types.length}개의 명부와 제출파일 ${types.length * 2}개를 받았습니다. 브라우저가 여러 파일 받기를 물으면 허용해 주세요.`);
+        }
+
+        // ───────── 화면 그리기 ─────────
+        function renderFailed() {
+            const box = document.getElementById('failedBox');
+            box.innerHTML = failedFiles.length
+                ? `<div class="notice bad"><strong>읽지 못한 파일 ${failedFiles.length}개</strong><ul>${failedFiles.map(item => `<li>${esc(item.fileName)} — ${esc(item.reason)}</li>`).join('')}</ul></div>`
+                : '';
+        }
+        function renderList() {
+            const types = groupNames();
+            const issueCount = records.filter(record => record.issues.length).length;
+            document.getElementById('summaryChips').innerHTML =
+                `<span class="chip">전체 ${records.length}명</span>` + types.map(type => `<span class="chip">${esc(type)} ${groupRecords(type).length}명</span>`).join('') +
+                (issueCount ? `<span class="chip warn">확인 필요 ${issueCount}건</span>` : '<span class="chip ok">확인 필요 없음</span>');
+            document.getElementById('issueBox').innerHTML = issueCount
+                ? `<div class="notice warn"><strong>확인이 필요한 조사서</strong><ul>${records.filter(record => record.issues.length).map(record => `<li>${esc(record.f.name || record.fileName)} — ${record.issues.map(esc).join(' / ')}</li>`).join('')}</ul></div>`
+                : '';
+            let order = 0;
+            document.getElementById('recordRows').innerHTML = types.flatMap(type => groupRecords(type)).map(record => {
+                const f = record.f;
+                order++;
+                return `<tr class="${record.id === selectedId ? 'selected' : ''}" onclick="selectRecord(${record.id})">
+                    <td>${order}</td>
+                    <td><span class="state ${record.issues.length ? 'warn' : 'ok'}">${record.issues.length ? '확인 필요' : '정상'}</span></td>
+                    <td>${esc(record.type)}</td><td>${esc(f.name)}</td><td>${esc(f.birth)}</td><td>${esc(f.gender)}</td><td>${esc(f.school)}</td><td>${esc(f.kind)}</td>
+                    <td>${esc(f.hope1)}</td><td>${esc(f.hope2)}</td><td>${esc(f.hope3)}</td><td>${showScore(record.total)}</td><td>${showScore(record.careerScore)}</td><td>${esc(f.yearsHere)}</td>
+                    <td class="left">${esc(record.fileName)}</td>
+                    <td><button type="button" class="btn btn-danger" onclick="removeRecord(${record.id}, event)">빼기</button></td></tr>`;
+            }).join('');
+            renderDetail();
+        }
+        function selectRecord(id) {
+            selectedId = selectedId === id ? null : id;
+            renderList();
+        }
+        function renderDetail() {
+            const box = document.getElementById('detailBox');
+            const record = records.find(item => item.id === selectedId);
+            if (!record) { box.innerHTML = ''; return; }
+            const f = record.f, nutrition = familyOf(record.type) === 'nutrition';
+            const items = [
+                ['교사 구분', record.type], ['성명', f.name], ['생년월일', f.birth], ['성별', f.gender], ['현임교', f.school], ['생활근거지', f.home],
+                ['전보구분', f.kind], ['1희망', f.hope1], ['2희망', f.hope2], ['3희망', f.hope3], ['통합1희망', f.merged1], ['통합2희망', f.merged2], ['통합3희망', f.merged3],
+                ['총점', typeof record.total === 'number' ? record.total.toFixed(3) : record.total], ['학교경력점', typeof record.careerScore === 'number' ? record.careerScore.toFixed(3) : record.careerScore],
+                ['현임교근무연수', f.yearsHere], ['타시군내신', f.otherCity], ['타시도내신', f.otherProvince], ['승진후보자', f.promotion], ['승진 희망 지역', f.promotionRegion],
+                ['과원 전보 내신자 희망', f.surplus], ['전보우선 사유', f.priority], ['전보유예 사유', f.defer], ['부부 교직원 성명', f.spouseName], ['부부 교직원 소속', f.spouseSchool],
+                [nutrition ? '직계존비속 교직원 성명' : '직계존비속 교직원1 성명', f.rel1Name], [nutrition ? '직계존비속 교직원 소속' : '직계존비속 교직원1 소속', f.rel1School],
+                [nutrition ? '직계존비속 학생 성명' : '직계존비속 교직원2 성명', f.rel2Name], [nutrition ? '직계존비속 학생 소속' : '직계존비속 교직원2 소속', f.rel2School], ['비고', f.note]
+            ];
+            box.innerHTML = `<div class="detail">
+                <div class="detail-title">${esc(f.name || '(성명 없음)')} 선생님 조사서 내용 <span style="font-family: var(--sans); font-size: 13px; color: var(--ink-3)">· ${esc(record.fileName)}</span></div>
+                ${record.issues.length ? `<div class="notice warn">${record.issues.map(esc).join(' / ')}</div>` : ''}
+                <div class="detail-grid">${items.map(([label, value]) => `<div><span>${esc(label)}</span><span>${filled(value) ? esc(value) : '-'}</span></div>`).join('')}</div>
+            </div>`;
+        }
+        function renderFileNameHint() {
+            if (!currentGroup) return;
+            const names = fileNames(currentGroup);
+            document.getElementById('fileNameHint').textContent = `받는 파일: ${names.rosters} / ${names.submit}`;
+        }
+        function renderRosterPaper() {
+            if (!currentGroup) return;
+            document.getElementById('rosterPaper').innerHTML = rosterHtml(buildRoster(ROSTERS[currentRoster], currentGroup));
+        }
+        function renderRosters() {
+            const types = groupNames();
+            if (!types.includes(currentGroup)) currentGroup = types[0] || null;
+            if (!currentGroup) return;
+            document.getElementById('groupTabs').innerHTML = types.map(type =>
+                `<button type="button" role="tab" class="tab-btn ${type === currentGroup ? 'active' : ''}" aria-selected="${type === currentGroup}" data-group="${esc(type)}">${esc(type)}<span class="count">${groupRecords(type).length}명</span></button>`).join('');
+            document.getElementById('rosterTabs').innerHTML = ROSTERS.map((definition, index) =>
+                `<button type="button" role="tab" class="tab-btn ${index === currentRoster ? 'active' : ''}" aria-selected="${index === currentRoster}" data-roster="${index}">${esc(definition.sheet)}<span class="count">${definition.rows(groupRecords(currentGroup)).length}</span></button>`).join('');
+            const setting = settingOf(currentGroup);
+            const principalInput = document.getElementById('principalInput'), labelInput = document.getElementById('schoolLabelInput');
+            if (document.activeElement !== principalInput) principalInput.value = setting.principal;
+            if (document.activeElement !== labelInput) labelInput.value = setting.label;
+            document.getElementById('downloadAllBtn').hidden = types.length < 2;
+            renderFileNameHint();
+            renderRosterPaper();
+        }
+        function refresh() {
+            recheck();
+            renderFailed();
+            const has = records.length > 0;
+            document.getElementById('listCard').hidden = !has;
+            document.getElementById('rosterCard').hidden = !has;
+            showDownloadStatus('');
+            if (!has) return;
+            renderList();
+            renderRosters();
+        }
+
+        // ───────── 시작 ─────────
+        document.addEventListener('DOMContentLoaded', () => {
+            updateThemeButton();
+            const zone = document.getElementById('dropzone');
+            ['dragenter', 'dragover'].forEach(type => zone.addEventListener(type, event => { event.preventDefault(); zone.classList.add('over'); }));
+            ['dragleave', 'drop'].forEach(type => zone.addEventListener(type, event => { event.preventDefault(); zone.classList.remove('over'); }));
+            zone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
+            // 끌어다 놓다가 빗나가도 브라우저가 파일을 열어 버리지 않게 한다
+            ['dragover', 'drop'].forEach(type => window.addEventListener(type, event => event.preventDefault()));
+            document.getElementById('fileInput').addEventListener('change', event => addFiles(event.target.files));
+            document.getElementById('groupTabs').addEventListener('click', event => {
+                const button = event.target.closest('[data-group]');
+                if (!button) return;
+                currentGroup = button.dataset.group;
+                showDownloadStatus('');
+                renderRosters();
+            });
+            document.getElementById('rosterTabs').addEventListener('click', event => {
+                const button = event.target.closest('[data-roster]');
+                if (!button) return;
+                currentRoster = Number(button.dataset.roster);
+                renderRosters();
+            });
+        });
+    </script>
+</body>
+</html>
