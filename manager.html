@@ -100,10 +100,6 @@
         .state.warn { background: var(--warn-bg); color: var(--warn-ink); }
         .detail { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
         .detail-title { font-family: var(--head); font-size: 17px; }
-        .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 18px; font-size: 14px; }
-        .detail-grid div { display: flex; gap: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 4px; }
-        .detail-grid span:first-child { color: var(--ink-3); flex: none; }
-        .detail-grid span:last-child { margin-left: auto; text-align: right; word-break: break-all; }
         /* 명부 */
         .tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); align-self: flex-start; }
         .tab-btn { min-height: 38px; padding: 0 14px; border: none; border-radius: 10px; background: transparent; color: var(--ink-2); font-size: 14px; cursor: pointer; }
@@ -125,6 +121,32 @@
         .paper th, .paper td { border: 1px solid #000000; padding: 6px 6px; text-align: center; font-weight: 400; font-family: inherit; white-space: pre-line; }
         .paper td { white-space: pre; }
         .empty { color: var(--ink-3); font-size: 15px; padding: 8px 0; }
+        /* 조사서 보기: 엑셀 양식 그대로 그리고, 입력 칸(연두색)을 눌러 고친다 */
+        .state.edit { background: var(--warn-bg); color: var(--warn-ink); margin-left: 4px; }
+        .detail-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+        .detail-head .spacer { margin-left: auto; }
+        .detail-head .btn { min-height: 38px; padding: 0 14px; font-size: 14px; }
+        .detail-hint { font-size: 14px; color: var(--ink-2); }
+        .form-wrap { overflow-x: auto; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+        .xl-zoom { width: fit-content; margin: 0 auto; }
+        .xl-sheet { border-collapse: collapse; table-layout: fixed; background: #FFFFFF; color: #000000; font-family: 'HY신명조', '바탕', Batang, serif; line-height: 1.25; font-synthesis: weight style; }
+        .xl-sheet td { padding: 0 2px; overflow: hidden; }
+        .xl-vertical { display: inline-block; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap; letter-spacing: 2px; }
+        .xl-sheet td.xl-edit { cursor: text; background-image: linear-gradient(rgba(11, 110, 79, 0.12), rgba(11, 110, 79, 0.12)); }
+        .xl-sheet td.xl-edit:hover { box-shadow: inset 0 0 0 2px #0B6E4F; }
+        .xl-sheet td.xl-changed { box-shadow: inset 0 0 0 3px #D98A00; }
+        .xl-sheet td input { display: block; width: 100%; border: none; outline: 2px solid #0B6E4F; background: #FFFFFF; color: #000000; font: inherit; text-align: inherit; padding: 0 2px; }
+        /* 조사서 인쇄: 인쇄할 때는 화면 대신 조사서만 한 장에 하나씩 찍는다 */
+        #printArea { display: none; }
+        @media print {
+            @page { size: A4 portrait; margin: 12mm 10mm; }
+            body { background: #FFFFFF; }
+            body.printing-forms .app { display: none !important; }
+            body.printing-forms #printArea { display: block; }
+            .print-page { break-after: page; page-break-after: always; }
+            .print-page:last-child { break-after: auto; page-break-after: auto; }
+            .print-page .xl-sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
         @media (max-width: 768px) { .top-note, .app-header, .app-main { padding-left: 16px; padding-right: 16px; } .card { padding: 18px 16px; } .step-heading { font-size: 20px; } }
     </style>
 </head>
@@ -165,12 +187,12 @@
             <section class="card" id="listCard">
                 <div class="step-head">
                     <span class="step-no">2</span>
-                    <h2 class="step-heading">조사서 내용 확인</h2>
+                    <h2 class="step-heading">조사서 조회 및 수정</h2>
                     <button type="button" class="btn btn-secondary spacer" id="clearAllBtn" onclick="clearAll()" hidden>모두 지우기</button>
                 </div>
-                <p class="empty" id="listEmpty">조사서를 올리면 선생님별 내용이 여기에 표로 나옵니다.</p>
+                <p class="empty" id="listEmpty">조사서를 올리면 선생님별 내용이 여기에 표로 나오고, 줄을 눌러 조사서를 보고 고칠 수 있습니다.</p>
                 <div class="card-body" id="listBody" hidden>
-                <p class="step-lead">줄을 누르면 조사서에 적힌 내용을 볼 수 있습니다. 고칠 내용이 있으면 선생님이 조사서를 다시 작성해 도장을 찍어 내야 하므로, 여기서는 고치지 않고 해당 줄을 뺀 뒤 새 파일을 올립니다.</p>
+                <p class="step-lead">줄을 누르면 그 선생님의 조사서가 엑셀 양식 그대로 나오고, 연두색 칸을 눌러 바로 고칠 수 있습니다. 고친 내용은 명부·제출파일·취합 파일에 모두 반영됩니다. 선생님이 도장을 찍어 낸 조사서와 내용이 같아야 하므로, 고쳤다면 선생님께도 알려 주세요.</p>
                 <div class="chips" id="summaryChips"></div>
                 <div id="issueBox"></div>
                 <div class="table-wrap">
@@ -186,12 +208,12 @@
             <section class="card" id="rosterCard">
                 <div class="step-head">
                     <span class="step-no">3</span>
-                    <h2 class="step-heading">명부와 제출파일 받기</h2>
+                    <h2 class="step-heading">취합 파일·제출파일 받기와 인쇄</h2>
                 </div>
-                <p class="empty" id="rosterEmpty">조사서를 올리면 조사서에 적힌 교사 구분(초등 교사, 초등 특수교사, 영양교사, 유치원 교사 등)마다 단추가 생기고, 구분별로 명부 9종과 제출파일을 따로 받을 수 있습니다.</p>
+                <p class="empty" id="rosterEmpty">조사서를 올리면 조사서에 적힌 교사 구분(초등 교사, 초등 특수교사, 영양교사, 유치원 교사 등)마다 단추가 생기고, 구분별로 교육지원청에 낼 두 파일(학교관리자취합용 파일, 제출파일)을 따로 받을 수 있습니다.</p>
                 <div class="card-body" id="rosterBody" hidden>
-                <p class="step-lead">교사 구분마다 명부 9종이 든 엑셀 파일과 교육지원청에 내는 제출파일을 따로 받습니다. 명부는 엑셀에서 열어 그대로 인쇄하면 됩니다.</p>
-                <div class="tab-label">교사 구분 고르기 (구분마다 명부와 제출파일이 따로 만들어집니다)</div>
+                <p class="step-lead">교육지원청에는 교사 구분마다 두 파일을 냅니다. <strong>학교관리자취합용 파일</strong>에는 명부 9종과 자료, 선생님들의 조사서가 시트로 들어 있고(작년 취합용 엑셀과 같은 구성), <strong>제출파일</strong>에는 자료만 들어 있습니다. 명부는 취합용 파일을 엑셀에서 열어 인쇄합니다.</p>
+                <div class="tab-label">교사 구분 고르기 (구분마다 두 파일이 따로 만들어집니다)</div>
                 <div class="tabs" id="groupTabs" role="tablist" aria-label="교사 구분"></div>
                 <div class="fields">
                     <div class="field">
@@ -205,9 +227,10 @@
                     </div>
                 </div>
                 <div class="actions">
-                    <button type="button" class="btn btn-primary" id="rosterDownloadBtn" onclick="downloadRosters()">명부 9종 엑셀 받기</button>
+                    <button type="button" class="btn btn-primary" id="collectionDownloadBtn" onclick="downloadCollection()">학교관리자취합용 파일 받기</button>
                     <button type="button" class="btn btn-primary" id="submitDownloadBtn" onclick="downloadSubmit()">제출파일 받기</button>
-                    <button type="button" class="btn btn-secondary" id="downloadAllBtn" onclick="downloadEverything()">모든 교사 구분 한꺼번에 받기</button>
+                    <button type="button" class="btn btn-secondary" id="printFormsBtn" onclick="printForms()">조사서 전체 인쇄</button>
+                    <button type="button" class="btn btn-secondary" id="downloadAllBtn" onclick="downloadEverything()">모든 교사 구분 파일 한꺼번에 받기</button>
                 </div>
                 <div id="downloadStatus" aria-live="polite"></div>
                 <div class="tab-label">명부 미리보기 (숫자는 명부에 오른 사람 수)</div>
@@ -217,6 +240,7 @@
             </section>
         </main>
     </div>
+    <div id="printArea" aria-hidden="true"></div>
 
     <script id="rosterSpec">
         // 작년 학교관리자취합용 엑셀의 명부 9종 서식(열 너비, 머리글, 글꼴, 테두리, 인쇄 설정)을 그대로 옮긴 값
@@ -324,6 +348,13 @@
         function recordFromSheet(sheet, fileName) {
             const title = String(readCell(sheet, 'B3'));
             if (!title.includes('조사서')) return null;
+            const record = { id: nextId++, fileName, sheet, edits: {}, issues: [] };   // edits: 여기서 고친 칸의 처음 값
+            readRecord(record);
+            return record;
+        }
+        // 조사서 시트에서 취합에 쓰는 값을 (다시) 읽는다
+        function readRecord(record) {
+            const sheet = record.sheet;
             const fields = {};
             Object.entries(FIELD_CELLS).forEach(([key, address]) => { fields[key] = readCell(sheet, address); });
             const scores = computeScores(sheet);
@@ -337,7 +368,7 @@
             if (!scores.verified) own.push('총점 수식이 양식과 달라 파일에 저장된 값을 그대로 씀');
             else if (typeof scores.stored === 'number' && Math.abs(scores.stored - scores.total) > 0.0005) own.push(`파일에 적힌 총점(${scores.stored.toFixed(3)})과 다시 더한 총점(${scores.total.toFixed(3)})이 다름`);
             if (scores.total === '' || scores.total === 0) own.push('총점이 비어 있음');
-            return { id: nextId++, fileName, sheetName: sheet.name, type: type || '(교사 구분 없음)', f: fields, total: scores.total, careerScore: scores.careerScore, own, issues: [] };
+            Object.assign(record, { type: type || '(교사 구분 없음)', f: fields, total: scores.total, careerScore: scores.careerScore, own });
         }
 
         async function readFile(file) {
@@ -455,7 +486,7 @@
         const safeFileName = text => String(text).replace(/[\\/:*?"<>|]/g, '').trim();
         function fileNames(type) {
             const label = safeFileName(settingOf(type).label) || '학교';
-            return { rosters: `${label}_관내전보_명부(${safeFileName(type)}).xlsx`, submit: `${label}_관내전보_제출파일(${safeFileName(type)}).xlsx` };
+            return { collection: `${label}_관내전보_학교관리자취합용(${safeFileName(type)}).xlsx`, submit: `${label}_관내전보_제출파일(${safeFileName(type)}).xlsx` };
         }
 
         // ───────── 명부 9종 (작년 취합용 엑셀의 매크로와 같은 규칙) ─────────
@@ -474,9 +505,8 @@
                 excelCompare(a.careerScore, b.careerScore, true) || excelCompare(a.f.birth, b.f.birth));
         }
         const filled = value => value !== '' && value !== null && value !== undefined;
-        // scoreCols: 총점·경력점 열(조사서처럼 소수 셋째 자리까지 보여 준다), yearCols: 현임교년수 열(둘째 자리까지)
         const ROSTERS = [
-            { sheet: '서열명부', perPage: 33, end: ['- 이하', '여백 -'], scoreCols: [9, 11], yearCols: [10],
+            { sheet: '서열명부', perPage: 33, end: ['- 이하', '여백 -'],
               rows: list => rankSort(list).map(r => [r.f.kind, r.f.school, r.f.hope1, r.f.hope2, r.f.hope3, r.f.gender, r.f.name, r.total, r.f.yearsHere, r.careerScore, r.f.birth, r.f.home, '', r.f.note]) },
             { sheet: '임용제청서', perPage: 26, end: ['- 이하', '여백 -'],
               rows: list => list.map(r => [r.f.name, r.f.kind, '교사', r.f.hope1, r.f.gender, '교사', r.f.school]) },
@@ -494,7 +524,7 @@
               rows: list => list.filter(r => filled(r.f.defer)).map(r => [r.f.school, r.f.name, r.f.birth, r.f.gender, r.f.defer, '사유서 1부\n학교장확인서 1부']) },
             { sheet: '전보우선자명부', perPage: 15, end: ['- 이하', '여백 -'], none: ['- 해당사항', '없음 -'], noneEnd: 23,
               rows: list => list.filter(r => filled(r.f.priority)).map(r => [r.f.school, r.f.name, r.f.birth, r.f.gender, r.f.priority, '']) },
-            { sheet: '과원전보내신자명부', perPage: 33, end: ['- 이하', '여백 -'], none: ['  - 해당', '사항없음 -'], noneEnd: 41, scoreCols: [8, 10], yearCols: [9],
+            { sheet: '과원전보내신자명부', perPage: 33, end: ['- 이하', '여백 -'], none: ['  - 해당', '사항없음 -'], noneEnd: 41,
               rows: list => rankSort(list.filter(r => filled(r.f.surplus))).map(r => [r.f.school, r.f.hope1, r.f.hope2, r.f.hope3, r.f.gender, r.f.name, r.total, r.f.yearsHere, r.careerScore, r.f.birth, r.f.surplus]) }
         ];
 
@@ -512,7 +542,7 @@
                 lines.push(definition.end);
                 printEnd = definition.perPage * Math.ceil(count / definition.perPage) + spec.first - 1;   // 쪽 단위로 빈 줄을 채워 인쇄
             }
-            return { spec, definition, count, lines, printEnd, title: `${spec.title}(${type})`, principal: settingOf(type).principal };
+            return { spec, count, lines, printEnd, title: `${spec.title}(${type})`, principal: settingOf(type).principal };
         }
 
         const columnNumber = letters => letters.split('').reduce((sum, ch) => sum * 26 + ch.charCodeAt(0) - 64, 0);
@@ -523,12 +553,11 @@
         }
 
         // ───────── 명부 미리보기 ─────────
-        function rosterText(definition, column, value) {
+        // 숫자는 원본 명부의 표시 형식대로 보여 준다 (총점·현임교년수·경력점은 소수 둘째 자리)
+        function rosterText(spec, column, value) {
             if (value === undefined || value === null) return '';
             if (typeof value !== 'number') return value;
-            if ((definition.scoreCols || []).includes(column)) return value.toFixed(3);
-            if ((definition.yearCols || []).includes(column)) return value.toFixed(2);
-            return value;
+            return (ROSTER_SPEC.styles[spec.data[column - 1]].n || '').includes('0.00') ? value.toFixed(2) : value;
         }
         function rosterHtml(roster) {
             const spec = roster.spec;
@@ -553,7 +582,7 @@
             html += '</thead><tbody>';
             roster.lines.forEach((line, index) => {
                 html += `<tr><td>${index + 1}</td>`;
-                for (let c = 0; c < spec.cols - 1; c++) if (shown(c + 2)) html += `<td>${esc(rosterText(roster.definition, c + 2, line[c]))}</td>`;
+                for (let c = 0; c < spec.cols - 1; c++) if (shown(c + 2)) html += `<td>${esc(rosterText(spec, c + 2, line[c]))}</td>`;
                 html += '</tr>';
             });
             return html + '</tbody></table>';
@@ -610,14 +639,35 @@
                     const value = c === 1 ? row - spec.first + 1 : line[c - 2];
                     if (value !== undefined && value !== '') cell.value = value;
                     applyStyle(cell, styles[spec.data[c - 1]]);
-                    if ((definition.scoreCols || []).includes(c)) cell.numFmt = '0.000_ ';
                 }
             }
         }
 
-        function buildRosterWorkbook(type) {
+        // 조사서 시트 이름: 작년 취합용 엑셀과 같은 '내신조사서_학교_성명생년월일'
+        function formSheetName(record, used) {
+            const base = `내신조사서_${record.f.school}_${record.f.name}${record.f.birth}`.replace(/[\\/?*\[\]:]/g, '').slice(0, 31);
+            let name = base;
+            for (let n = 2; used.has(name); n++) name = base.slice(0, 31 - String(n).length - 2) + `(${n})`;
+            used.add(name);
+            return name;
+        }
+        // 올린 조사서 시트를 서식·수식·보호 설정째로 새 통합 문서에 옮긴다
+        function addFormSheet(workbook, record, name) {
+            const model = record.sheet.model;
+            const properties = Object.assign({}, model.properties);
+            delete properties.outlineProperties;      // 이 설정이 남아 있으면 저장할 때 순서가 틀려 엑셀이 파일을 열지 못한다
+            const target = workbook.addWorksheet(name);
+            target.model = Object.assign({}, model, { id: target.id, name, properties, state: 'visible', mergeCells: model.merges });
+            target.name = name;
+        }
+        // 학교관리자취합용 파일: 명부 9종 + 자료 + 조사서 시트 (작년 취합용 엑셀을 교육지원청에 내던 것과 같은 구성)
+        function buildCollectionWorkbook(type) {
             const workbook = new ExcelJS.Workbook();
             ROSTERS.forEach(definition => addRosterSheet(workbook, definition, type));
+            addDataSheet(workbook, type);
+            const used = new Set(workbook.worksheets.map(sheet => sheet.name));
+            groupRecords(type).forEach(record => addFormSheet(workbook, record, formSheetName(record, used)));
+            workbook.calcProperties.fullCalcOnLoad = true;      // 엑셀에서 열 때 조사서의 총점 수식을 다시 계산
             return workbook;
         }
 
@@ -630,9 +680,13 @@
                 f.rel1Name, f.rel1School, f.rel2Name, f.rel2School, f.merged1, f.merged2, f.merged3, '', '', f.note, record.type];
         }
         function buildSubmitWorkbook(type) {
-            const data = ROSTER_SPEC.data;
             const workbook = new ExcelJS.Workbook();
             workbook.addWorksheet('Sheet1');
+            addDataSheet(workbook, type);
+            return workbook;
+        }
+        function addDataSheet(workbook, type) {
+            const data = ROSTER_SPEC.data;
             const sheet = workbook.addWorksheet('자료');
             const thin = { style: 'thin' }, box = { left: thin, right: thin, top: thin, bottom: thin };
             const font = { name: '맑은 고딕', size: 11 };
@@ -671,7 +725,6 @@
                     cell.alignment = { horizontal: 'center' };
                 });
             });
-            return workbook;
         }
 
         async function saveWorkbook(workbook, fileName) {
@@ -689,11 +742,11 @@
             const count = records.filter(record => types.includes(record.type) && record.issues.length).length;
             return !count || confirm(`확인이 필요한 조사서가 ${count}건 있습니다. 그대로 파일을 만들까요?`);
         }
-        async function downloadRosters() {
+        async function downloadCollection() {
             if (!currentGroup || !confirmIssues([currentGroup])) return;
-            const name = fileNames(currentGroup).rosters;
-            await saveWorkbook(buildRosterWorkbook(currentGroup), name);
-            showDownloadStatus(`${esc(name)} 파일을 받았습니다.`);
+            const name = fileNames(currentGroup).collection;
+            await saveWorkbook(buildCollectionWorkbook(currentGroup), name);
+            showDownloadStatus(`${esc(name)} 파일을 받았습니다. 명부 9종, 자료, 조사서 ${groupRecords(currentGroup).length}장이 시트로 들어 있습니다.`);
         }
         async function downloadSubmit() {
             if (!currentGroup || !confirmIssues([currentGroup])) return;
@@ -705,11 +758,11 @@
             const types = groupNames();
             if (!types.length || !confirmIssues(types)) return;
             for (const type of types) {
-                await saveWorkbook(buildRosterWorkbook(type), fileNames(type).rosters);
+                await saveWorkbook(buildCollectionWorkbook(type), fileNames(type).collection);
                 await saveWorkbook(buildSubmitWorkbook(type), fileNames(type).submit);
                 await new Promise(resolve => setTimeout(resolve, 300));   // 브라우저가 여러 파일 받기를 막지 않도록 조금 쉰다
             }
-            showDownloadStatus(`교사 구분 ${types.length}개의 명부와 제출파일 ${types.length * 2}개를 받았습니다. 브라우저가 여러 파일 받기를 물으면 허용해 주세요.`);
+            showDownloadStatus(`교사 구분 ${types.length}개의 취합용 파일과 제출파일 ${types.length * 2}개를 받았습니다. 브라우저가 여러 파일 받기를 물으면 허용해 주세요.`);
         }
 
         // ───────── 화면 그리기 ─────────
@@ -734,7 +787,7 @@
                 order++;
                 return `<tr class="${record.id === selectedId ? 'selected' : ''}" onclick="selectRecord(${record.id})">
                     <td>${order}</td>
-                    <td><span class="state ${record.issues.length ? 'warn' : 'ok'}">${record.issues.length ? '확인 필요' : '정상'}</span></td>
+                    <td><span class="state ${record.issues.length ? 'warn' : 'ok'}">${record.issues.length ? '확인 필요' : '정상'}</span>${Object.keys(record.edits).length ? '<span class="state edit">고침</span>' : ''}</td>
                     <td>${esc(record.type)}</td><td>${esc(f.name)}</td><td>${esc(f.birth)}</td><td>${esc(f.gender)}</td><td>${esc(f.school)}</td><td>${esc(f.kind)}</td>
                     <td>${esc(f.hope1)}</td><td>${esc(f.hope2)}</td><td>${esc(f.hope3)}</td><td>${showScore(record.total)}</td><td>${showScore(record.careerScore)}</td><td>${esc(f.yearsHere)}</td>
                     <td class="left">${esc(record.fileName)}</td>
@@ -746,30 +799,220 @@
             selectedId = selectedId === id ? null : id;
             renderList();
         }
+        // ───────── 조사서 보기 (엑셀 양식 그대로) ─────────
+        const FORM_COLS = [2, 17];        // B~Q열
+        const FORM_ROWS = [3, 57];        // 3~57행: 조사서 + 추가 입력 항목 (숨긴 행은 건너뜀)
+        const FORM_PRINT_ROWS = [3, 38];  // 인쇄 영역(B3:Q38)
+        const EXCEL_BORDER_CSS = {
+            thin: '1px solid #000', hair: '1px dotted #000', dotted: '1px dotted #000', dashed: '1px dashed #000',
+            medium: '2px solid #000', thick: '3px solid #000', double: '3px double #000',
+            mediumDashed: '2px dashed #000', dashDot: '1px dashed #000', mediumDashDot: '2px dashed #000'
+        };
+        // 수식 칸에 엑셀이 계산해 보여 줄 값
+        function formulaShown(record, formula, cached) {
+            const text = formula.replace(/\s+/g, '');
+            if (/학교장|유치원장|희망학교/.test(text)) return defaultPrincipal(record.type, String(record.f.school));
+            if (/Q12\+P\d+/.test(text)) return record.total;
+            if (/SUM\(P12/.test(text) || /^IF\(ISERR\(Q12\)/.test(text)) return record.careerScore;
+            if (/SUM\(O\d+/.test(text)) { const sum = sumOfFormulaRange(record.sheet, text); return sum === null ? cached : round3(sum); }
+            return cached;
+        }
+        function formLayout(record, rowRange) {
+            const sheet = record.sheet;
+            const [firstCol, lastCol] = FORM_COLS, [firstRow, lastRow] = rowRange;
+            const rows = [];
+            for (let r = firstRow; r <= lastRow; r++) {
+                const row = sheet.getRow(r);
+                if (!row.hidden) rows.push({ r, height: Math.round((row.height || 15) * 96 / 72) });
+            }
+            const visible = new Set(rows.map(row => row.r));
+            const cols = [];
+            for (let c = firstCol; c <= lastCol; c++) cols.push(Math.round((sheet.getColumn(c).width || 8.43) * 7 + 5));
+            const borderOf = (cell, side) => (cell.border && cell.border[side] && cell.border[side].style) || '';
+            const cells = [];
+            rows.forEach(({ r }) => {
+                for (let c = firstCol; c <= lastCol; c++) {
+                    const cell = sheet.getCell(r, c);
+                    if ((cell.master || cell) !== cell) continue;
+                    let bottom = r, right = c;
+                    if (cell.isMerged) {
+                        while (right < lastCol && sheet.getCell(r, right + 1).master === cell) right++;
+                        while (bottom < lastRow && sheet.getCell(bottom + 1, c).master === cell) bottom++;
+                    }
+                    let rowSpan = 0;
+                    for (let rr = r; rr <= bottom; rr++) if (visible.has(rr)) rowSpan++;
+                    const raw = cell.value;
+                    const isFormula = !!raw && typeof raw === 'object' && typeof cell.formula === 'string';
+                    const value = isFormula ? formulaShown(record, cell.formula, plainValue(raw)) : plainValue(raw);
+                    const font = cell.font || {}, alignment = cell.alignment || {};
+                    const fill = cell.fill && cell.fill.type === 'pattern' && cell.fill.pattern === 'solid' && cell.fill.fgColor && cell.fill.fgColor.argb;
+                    cells.push({
+                        address: cell.address, r, c, rowSpan, colSpan: right - c + 1, value,
+                        editable: !isFormula && !!cell.protection && cell.protection.locked === false,
+                        size: Math.round((font.size || 11) * 96 / 72), bold: !!font.bold, fontName: font.name || '',
+                        align: alignment.horizontal || '', valign: alignment.vertical || 'bottom',
+                        wrap: !!alignment.wrapText, shrink: !!alignment.shrinkToFit, vertical: alignment.textRotation === 'vertical',
+                        fill: fill ? '#' + fill.slice(2) : '', numFmt: cell.numFmt || '',
+                        border: { left: borderOf(cell, 'left'), top: borderOf(cell, 'top'), right: borderOf(sheet.getCell(r, right), 'right'), bottom: borderOf(sheet.getCell(bottom, c), 'bottom') }
+                    });
+                }
+            });
+            return { rows, cols, cells, width: cols.reduce((sum, w) => sum + w, 0), height: rows.reduce((sum, row) => sum + row.height, 0) };
+        }
+        // editable: 입력 칸을 눌러 고칠 수 있게 표시할지 (인쇄용은 표시하지 않음)
+        function formHtml(record, layout, editable) {
+            const byRow = {};
+            layout.cells.forEach(cell => { (byRow[cell.r] = byRow[cell.r] || []).push(cell); });
+            let html = `<table class="xl-sheet" style="width: ${layout.width}px"><colgroup>` + layout.cols.map(width => `<col style="width: ${width}px">`).join('') + '</colgroup><tbody>';
+            layout.rows.forEach(row => {
+                html += `<tr style="height: ${row.height}px">`;
+                (byRow[row.r] || []).forEach(cell => {
+                    let value = cell.value;
+                    const isNumber = typeof value === 'number';
+                    if (isNumber) value = cell.numFmt.includes('0.000') ? value.toFixed(3) : (cell.numFmt.includes('0.00') ? value.toFixed(2) : String(value));
+                    value = value === null || value === undefined ? '' : String(value);
+                    let width = 0;
+                    for (let i = 0; i < cell.colSpan; i++) width += layout.cols[cell.c - FORM_COLS[0] + i];
+                    let size = cell.size;
+                    // 한 줄로 넣었을 때 넘치면 글자를 줄인다 (엑셀의 '셀에 맞춤'과 화면 글꼴 차이를 함께 맞춤)
+                    if ((cell.shrink || !cell.wrap) && !cell.vertical && value) {
+                        const longest = Math.max(...value.split('\n').map(line => [...line].reduce((sum, ch) => sum + (ch.charCodeAt(0) > 255 ? 1 : 0.55), 0)));
+                        const needed = longest * size + 8;
+                        if (needed > width) size = Math.max(6, Math.floor(size * width / needed));
+                    }
+                    const style = [
+                        `font-size: ${size}px`, cell.bold ? 'font-weight: 700' : '',
+                        cell.fontName ? `font-family: '${cell.fontName}', 'HY신명조', '바탕', Batang, serif` : '',
+                        `text-align: ${cell.align || (isNumber ? 'right' : 'left')}`,
+                        `vertical-align: ${cell.valign === 'middle' ? 'middle' : (cell.valign === 'top' ? 'top' : 'bottom')}`,
+                        `white-space: ${cell.wrap && !cell.shrink ? 'pre-wrap' : 'pre'}`,
+                        cell.fill ? `background-color: ${cell.fill}` : '',
+                        ...['left', 'top', 'right', 'bottom'].map(side => cell.border[side] ? `border-${side}: ${EXCEL_BORDER_CSS[cell.border[side]] || '1px solid #000'}` : '')
+                    ].filter(Boolean).join('; ');
+                    const classes = [editable && cell.editable ? 'xl-edit' : '', editable && (cell.address in record.edits) ? 'xl-changed' : ''].filter(Boolean).join(' ');
+                    html += `<td${cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : ''}${cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : ''}` +
+                        `${classes ? ` class="${classes}"` : ''}${editable && cell.editable ? ` data-address="${cell.address}"` : ''} style="${style}">` +
+                        (cell.vertical ? `<span class="xl-vertical">${esc(value)}</span>` : esc(cell.wrap && !cell.shrink ? value : value.replace(/\n/g, ' '))) + '</td>';
+                });
+                html += '</tr>';
+            });
+            return html + '</tbody></table>';
+        }
+
         function renderDetail() {
             const box = document.getElementById('detailBox');
             const record = records.find(item => item.id === selectedId);
             if (!record) { box.innerHTML = ''; return; }
-            const f = record.f, nutrition = familyOf(record.type) === 'nutrition';
-            const items = [
-                ['교사 구분', record.type], ['성명', f.name], ['생년월일', f.birth], ['성별', f.gender], ['현임교', f.school], ['생활근거지', f.home],
-                ['전보구분', f.kind], ['1희망', f.hope1], ['2희망', f.hope2], ['3희망', f.hope3], ['통합1희망', f.merged1], ['통합2희망', f.merged2], ['통합3희망', f.merged3],
-                ['총점', typeof record.total === 'number' ? record.total.toFixed(3) : record.total], ['학교경력점', typeof record.careerScore === 'number' ? record.careerScore.toFixed(3) : record.careerScore],
-                ['현임교근무연수', f.yearsHere], ['타시군내신', f.otherCity], ['타시도내신', f.otherProvince], ['승진후보자', f.promotion], ['승진 희망 지역', f.promotionRegion],
-                ['과원 전보 내신자 희망', f.surplus], ['전보우선 사유', f.priority], ['전보유예 사유', f.defer], ['부부 교직원 성명', f.spouseName], ['부부 교직원 소속', f.spouseSchool],
-                [nutrition ? '직계존비속 교직원 성명' : '직계존비속 교직원1 성명', f.rel1Name], [nutrition ? '직계존비속 교직원 소속' : '직계존비속 교직원1 소속', f.rel1School],
-                [nutrition ? '직계존비속 학생 성명' : '직계존비속 교직원2 성명', f.rel2Name], [nutrition ? '직계존비속 학생 소속' : '직계존비속 교직원2 소속', f.rel2School], ['비고', f.note]
-            ];
+            const layout = formLayout(record, FORM_ROWS);
+            const editCount = Object.keys(record.edits).length;
             box.innerHTML = `<div class="detail">
-                <div class="detail-title">${esc(f.name || '(성명 없음)')} 선생님 조사서 내용 <span style="font-family: var(--sans); font-size: 13px; color: var(--ink-3)">· ${esc(record.fileName)}</span></div>
+                <div class="detail-head">
+                    <div class="detail-title">${esc(record.f.name || '(성명 없음)')} 선생님 조사서 <span style="font-family: var(--sans); font-size: 13px; color: var(--ink-3)">· ${esc(record.fileName)}</span></div>
+                    <span class="spacer"></span>
+                    ${editCount ? `<button type="button" class="btn btn-secondary" onclick="revertRecord(${record.id})">고친 ${editCount}칸 원래대로</button>` : ''}
+                    <button type="button" class="btn btn-secondary" onclick="printForms(${record.id})">이 조사서 인쇄</button>
+                    <button type="button" class="btn btn-secondary" onclick="selectRecord(${record.id})">닫기</button>
+                </div>
                 ${record.issues.length ? `<div class="notice warn">${record.issues.map(esc).join(' / ')}</div>` : ''}
-                <div class="detail-grid">${items.map(([label, value]) => `<div><span>${esc(label)}</span><span>${filled(value) ? esc(value) : '-'}</span></div>`).join('')}</div>
+                <p class="detail-hint">연두색 칸을 누르면 고칠 수 있습니다(Enter로 저장, Esc로 취소). 고친 칸은 주황색 테두리로 표시되고, 총점·경력점은 점수 칸을 고치면 자동으로 다시 계산됩니다.</p>
+                <div class="form-wrap" id="formWrap"><div class="xl-zoom" id="formZoom">${formHtml(record, layout, true)}</div></div>
+                <datalist id="formEditList"></datalist>
             </div>`;
+            const wrap = document.getElementById('formWrap');
+            document.getElementById('formZoom').style.zoom = Math.min(1.15, Math.max(0.4, (wrap.clientWidth - 40) / layout.width));
         }
+
+        // ───────── 조사서 고치기 ─────────
+        // 목록에서 고르는 칸이면 그 목록을 찾아 준다
+        function listOptions(sheet, address) {
+            const rule = sheet.getCell(address).dataValidation;
+            if (!rule || rule.type !== 'list' || !rule.formulae || !rule.formulae[0]) return [];
+            const source = String(rule.formulae[0]);
+            if (source.startsWith('"')) return source.replace(/^"|"$/g, '').split(',').map(item => item.trim()).filter(Boolean);
+            const match = /^\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?$/.exec(source);
+            if (!match) return [];
+            const options = [];
+            for (let r = Number(match[2]); r <= Number(match[4] || match[2]); r++) {
+                const value = readCell(sheet, match[1] + r);
+                if (value !== '') options.push(String(value));
+            }
+            return options;
+        }
+        // 점수·근무연수 칸은 숫자로 넣는다 (엑셀이 합계를 낼 수 있게)
+        function isNumberCell(address) {
+            const match = /^([A-Z]+)(\d+)$/.exec(address);
+            return address === 'H10' || (['O', 'P'].includes(match[1]) && Number(match[2]) >= 12 && Number(match[2]) <= 36);
+        }
+        function startEdit(cellElement) {
+            const record = records.find(item => item.id === selectedId);
+            if (!record || cellElement.querySelector('input')) return;
+            const address = cellElement.dataset.address;
+            const current = plainValue(record.sheet.getCell(address).value);
+            document.getElementById('formEditList').innerHTML = listOptions(record.sheet, address).map(option => `<option value="${esc(option)}"></option>`).join('');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = current === '' ? '' : String(current);
+            input.setAttribute('list', 'formEditList');
+            input.style.height = Math.max(18, cellElement.clientHeight - 2) + 'px';
+            cellElement.textContent = '';
+            cellElement.appendChild(input);
+            input.focus();
+            input.select();
+            let done = false;
+            const finish = save => {
+                if (done) return;
+                done = true;
+                if (save) commitEdit(record, address, input.value); else renderDetail();
+            };
+            input.addEventListener('keydown', event => {
+                if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+                if (event.key === 'Escape') { event.preventDefault(); finish(false); }
+            });
+            input.addEventListener('blur', () => finish(true));
+        }
+        function commitEdit(record, address, text) {
+            const cell = record.sheet.getCell(address);
+            const before = cell.value === undefined ? null : cell.value;
+            const trimmed = text.trim();
+            let value = trimmed === '' ? null : trimmed;
+            if (value !== null && /^-?\d+(\.\d+)?$/.test(value) && (typeof before === 'number' || (plainValue(before) === '' && isNumberCell(address)))) value = Number(value);
+            if (plainValue(value) === plainValue(before) && typeof value === typeof plainValue(before)) { renderDetail(); return; }
+            if (!(address in record.edits)) record.edits[address] = before;
+            cell.value = value;
+            if (plainValue(record.edits[address]) === plainValue(value)) delete record.edits[address];      // 처음 값으로 되돌렸으면 '고침' 표시를 지운다
+            readRecord(record);
+            refresh();
+        }
+        function revertRecord(id) {
+            const record = records.find(item => item.id === id);
+            if (!record || !confirm('이 조사서에서 고친 내용을 모두 처음 값으로 되돌릴까요?')) return;
+            Object.entries(record.edits).forEach(([address, value]) => { record.sheet.getCell(address).value = value; });
+            record.edits = {};
+            readRecord(record);
+            refresh();
+        }
+
+        // ───────── 조사서 인쇄: 조사서의 인쇄 영역(B3:Q38)을 A4 한 장에 하나씩 ─────────
+        function printForms(recordId) {
+            const list = recordId ? records.filter(record => record.id === recordId) : groupRecords(currentGroup);
+            if (!list.length) return;
+            const pageWidth = 715, pageHeight = 1025;      // A4에서 여백(위아래 12mm, 좌우 10mm)을 뺀 크기 (96dpi 기준 px)
+            document.getElementById('printArea').innerHTML = list.map(record => {
+                const layout = formLayout(record, FORM_PRINT_ROWS);
+                const zoom = Math.min(pageWidth / (layout.width + 4), pageHeight / (layout.height + 4));
+                return `<div class="print-page"><div class="xl-zoom" style="zoom: ${zoom.toFixed(4)}">${formHtml(record, layout, false)}</div></div>`;
+            }).join('');
+            document.body.classList.add('printing-forms');
+            window.print();
+        }
+        window.addEventListener('afterprint', () => {
+            document.body.classList.remove('printing-forms');
+            document.getElementById('printArea').innerHTML = '';
+        });
         function renderFileNameHint() {
             if (!currentGroup) return;
             const names = fileNames(currentGroup);
-            document.getElementById('fileNameHint').textContent = `받는 파일: ${names.rosters} / ${names.submit}`;
+            document.getElementById('fileNameHint').textContent = `받는 파일: ${names.collection} / ${names.submit}`;
         }
         function renderRosterPaper() {
             if (!currentGroup) return;
@@ -788,8 +1031,9 @@
             if (document.activeElement !== principalInput) principalInput.value = setting.principal;
             if (document.activeElement !== labelInput) labelInput.value = setting.label;
             document.getElementById('downloadAllBtn').hidden = types.length < 2;
-            document.getElementById('rosterDownloadBtn').textContent = `${currentGroup} 명부 9종 엑셀 받기`;
+            document.getElementById('collectionDownloadBtn').textContent = `${currentGroup} 학교관리자취합용 파일 받기`;
             document.getElementById('submitDownloadBtn').textContent = `${currentGroup} 제출파일 받기`;
+            document.getElementById('printFormsBtn').textContent = `${currentGroup} 조사서 전체 인쇄 (${groupRecords(currentGroup).length}장)`;
             renderFileNameHint();
             renderRosterPaper();
         }
@@ -815,6 +1059,10 @@
             // 끌어다 놓다가 빗나가도 브라우저가 파일을 열어 버리지 않게 한다
             ['dragover', 'drop'].forEach(type => window.addEventListener(type, event => event.preventDefault()));
             document.getElementById('fileInput').addEventListener('change', event => addFiles(event.target.files));
+            document.getElementById('detailBox').addEventListener('click', event => {
+                const cell = event.target.closest('td.xl-edit');
+                if (cell && event.target.tagName !== 'INPUT') startEdit(cell);
+            });
             document.getElementById('groupTabs').addEventListener('click', event => {
                 const button = event.target.closest('[data-group]');
                 if (!button) return;
