@@ -30,10 +30,11 @@
         .form-btn:focus-visible { outline: 3px solid var(--accent-ring); outline-offset: 2px; }
         .app-header-side { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 14px; color: var(--ink-2); }
         .header-link { color: var(--accent); font-weight: 600; }
+        .header-file-btn { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
         .header-link:hover { color: var(--accent-hover); }
         /* 단계 표시 */
         .stepper { padding: 8px 40px 0; }
-        .stepper ol { list-style: none; margin: 0 auto; max-width: 1560px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .stepper ol { list-style: none; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
         .step-tab { width: 100%; display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; border: none; background: transparent; text-align: left; cursor: pointer; color: var(--ink-2); font-size: 14px; font-weight: 500; }
         .step-bar { height: 6px; border-radius: 3px; background: var(--line); transition: background 0.2s; }
         .step-name { display: flex; align-items: center; gap: 8px; min-height: 22px; }
@@ -47,7 +48,7 @@
         .step-tab:focus-visible { outline: 3px solid var(--accent-ring); outline-offset: 4px; border-radius: 6px; }
         /* 본문 2단 */
         .app-main { flex: 1; padding: 28px 40px 40px; }
-        .app-columns { max-width: 1560px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+        .app-columns { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
         .content { flex: 1 1 520px; min-width: 0; }
         .section { display: none; }
         .section.active { display: block; }
@@ -201,7 +202,7 @@
         .top-note { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 8px 40px; display: flex; flex-wrap: wrap; gap: 2px 24px; font-size: 13px; color: var(--ink-2); }
         /* 아래 고정 줄 */
         .app-footer { position: sticky; bottom: 0; z-index: 50; background: var(--surface); border-top: 1px solid var(--line); padding: 14px 40px; }
-        .app-footer-inner { max-width: 1560px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+        .app-footer-inner { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
         .foot-scores { display: flex; flex-wrap: wrap; gap: 22px; align-items: baseline; font-size: 15px; color: var(--ink-2); }
         .foot-scores strong { color: var(--ink); }
         .foot-total { font-size: 17px; color: var(--ink); }
@@ -237,7 +238,7 @@
             </div>
             <div class="app-header-side">
                 <span>작성 기준일 2027. 2. 28.</span>
-                <a class="header-link" href="https://works.do/GbfcAqT" target="_blank">파일 다운로드</a>
+                <a class="btn btn-secondary header-file-btn" href="https://works.do/GbfcAqT" target="_blank" rel="noopener">인사관리기준 파일</a>
             </div>
         </header>
 
@@ -10052,7 +10053,7 @@
             const zoomBox = box.querySelector('.xl-zoom');
             if (!zoomBox) return;
             const available = box.clientWidth - 24;
-            const scale = Math.min(1, available > 0 ? available / layout.width : 1);
+            const scale = Math.min(1.3, available > 0 ? available / layout.width : 1);
             zoomBox.style.zoom = scale;
         }
 
