@@ -310,10 +310,12 @@
                             <option value="">선택하세요</option>
                             <option value="희망">희망</option>
                             <option value="만기">만기</option>
-                            <option value="우선">우선</option>
+                            <option value="우선(희망)">우선(희망)</option>
+                            <option value="우선(만기)">우선(만기)</option>
                             <option value="초빙">초빙</option>
                             <option value="비정기">비정기</option>
                         </select>
+                        <div id="transferTypeNote" class="help-text hidden"></div>
                     </div>
                     <div class="form-group">
                         <label>1희망 <span class="required">*</span></label>
@@ -4930,8 +4932,16 @@
             const secondChoice = document.getElementById('secondChoice');
             const thirdChoice = document.getElementById('thirdChoice');
 
-            // 희망, 우선, 초빙, 비정기는 1희망만 선택 가능
-            if (['희망', '우선', '초빙', '비정기'].includes(transferType)) {
+            // 양식의 작성 방법: 만기자는 2·3희망까지 적는다. 전보 우선 대상자이면서 만기자인 경우에도 2·3희망을 적는다.
+            //  → 화면에서는 '우선(희망)'(1희망만)과 '우선(만기)'(3희망까지)로 나눠 고르게 하고, 조사서에는 둘 다 '우선'으로 적는다.
+            const note = document.getElementById('transferTypeNote');
+            if (note) {
+                note.textContent = transferType === '우선(만기)' ? '우선 대상자이면서 만기자인 경우입니다. 2희망·3희망 학교까지 적습니다. 조사서의 전보구분에는 "우선"으로 들어갑니다.'
+                    : (transferType === '우선(희망)' ? '우선 대상자이고 만기자가 아닌 경우입니다. 1희망만 적습니다. 조사서의 전보구분에는 "우선"으로 들어갑니다.' : '');
+                note.classList.toggle('hidden', !transferType.startsWith('우선'));
+            }
+            // 희망, 우선(희망), 초빙, 비정기는 1희망만 선택 가능
+            if (['희망', '우선(희망)', '초빙', '비정기'].includes(transferType)) {
                 // 2, 3희망 비활성화 및 초기화
                 secondChoice.disabled = true;
                 thirdChoice.disabled = true;
@@ -4940,7 +4950,7 @@
                 secondChoice.style.backgroundColor = 'var(--surface-2)';
                 thirdChoice.style.backgroundColor = 'var(--surface-2)';
             } else {
-                // 만기 등 다른 전보구분 선택 시 2, 3희망 활성화
+                // 만기·우선(만기)는 2, 3희망 활성화
                 secondChoice.disabled = false;
                 thirdChoice.disabled = false;
                 secondChoice.style.backgroundColor = '';
@@ -10428,7 +10438,7 @@
                 otherProvince: document.getElementById('otherProvince').value,
                 promotionCandidate: document.getElementById('promotionCandidate').value,
                 remarks: document.getElementById('remarks').value,
-                transferType: document.getElementById('transferType').value,
+                transferType: document.getElementById('transferType').value.replace(/^우선\(.*\)$/, '우선'),      // 조사서 양식의 전보구분 목록에는 '우선' 하나뿐이다
                 firstChoice: document.getElementById('firstChoice').value,
                 secondChoice: document.getElementById('secondChoice').value,
                 thirdChoice: document.getElementById('thirdChoice').value,
