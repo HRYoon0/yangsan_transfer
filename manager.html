@@ -682,8 +682,13 @@
             const model = record.sheet.model;
             const properties = Object.assign({}, model.properties);
             delete properties.outlineProperties;      // 이 설정이 남아 있으면 저장할 때 순서가 틀려 엑셀이 파일을 열지 못한다
+            // 병합된 칸의 안쪽 칸(왼쪽 위가 아닌 칸)은 그대로 넘기면 ExcelJS 가 건너뛰어 테두리가 사라진다.
+            // 빈 칸으로 바꿔 서식째 넘기고, 병합은 아래 mergeCells 로 다시 건다(서식은 건드리지 않고 병합만 함).
+            const rows = model.rows.map(row => Object.assign({}, row, {
+                cells: row.cells.map(cell => cell.type === ExcelJS.ValueType.Merge ? { address: cell.address, type: ExcelJS.ValueType.Null, style: cell.style } : cell)
+            }));
             const target = workbook.addWorksheet(name);
-            target.model = Object.assign({}, model, { id: target.id, name, properties, state: 'visible', mergeCells: model.merges });
+            target.model = Object.assign({}, model, { id: target.id, name, properties, rows, state: 'visible', mergeCells: model.merges });
             target.name = name;
             return target;
         }
@@ -696,38 +701,39 @@
         // 시트가 많아(초등은 구분 5개면 70개) 찾기 어려우므로 맨 앞에 '목차' 시트를 두고, 눌러서 오갈 수 있게 한다
         const INDEX_SHEET = '목차';
         const ROSTER_SHORT = ['서열명부', '임용제청서', '승진후보자', '장기근속자', '타시도(군)', '부부교직원', '유예신청자', '전보우선자', '과원전보'];
-        const LINK_FONT = { name: '맑은 고딕', size: 10, underline: true, color: { argb: 'FF0563C1' } };
+        const LINK_FONT = { name: '맑은 고딕', size: 11, underline: true, color: { argb: 'FF0563C1' } };
+        const INDEX_FONT_SIZE = 14;      // 목차는 한눈에 보이도록 글자를 크게
         const sheetLink = name => `#'${String(name).replace(/'/g, "''")}'!A1`;
         function addBackLink(sheet, address) {
             const cell = sheet.getCell(address);
             cell.value = { text: '← 목차', hyperlink: sheetLink(INDEX_SHEET) };
-            cell.font = LINK_FONT;
-            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            cell.style = Object.assign({}, cell.style, { font: LINK_FONT, alignment: { horizontal: 'left', vertical: 'middle' } });
         }
         function addIndexSheet(workbook, family, types, list, rosterNames, formNames) {
             const sheet = workbook.addWorksheet(INDEX_SHEET, {
                 properties: { tabColor: { argb: 'FF0B6E4F' } }, views: [{ showGridLines: false }],
                 pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
             });
-            const font = { name: '맑은 고딕', size: 10 };
+            const font = { name: '맑은 고딕', size: INDEX_FONT_SIZE };
+            const linkFont = Object.assign({}, LINK_FONT, { size: INDEX_FONT_SIZE });
             const thin = { style: 'thin', color: { argb: 'FF9FB3A8' } }, box = { left: thin, right: thin, top: thin, bottom: thin };
             const headFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4F3EC' } };
-            [5, 16, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12].forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
+            [7, 22, 15, 17, 17, 17, 17, 17, 17, 17, 17, 17].forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
             const put = (row, column, value, options = {}) => {
                 const cell = sheet.getCell(row, column);
                 cell.value = value;
-                cell.font = options.link ? LINK_FONT : (options.muted ? Object.assign({}, font, { color: { argb: 'FF8A9990' } })
+                cell.font = options.link ? linkFont : (options.muted ? Object.assign({}, font, { color: { argb: 'FF8A9990' } })
                     : Object.assign({}, font, options.bold ? { bold: true } : {}, options.size ? { size: options.size } : {}));
                 cell.alignment = { horizontal: options.left ? 'left' : 'center', vertical: 'middle', wrapText: !!options.wrap };
+                sheet.getRow(row).height = Math.max(sheet.getRow(row).height || 0, options.size ? 40 : 27);
                 if (options.box !== false) cell.border = box;
                 if (options.head) cell.fill = headFill;
                 return cell;
             };
             const setting = settingOf(types[0]);
-            put(1, 1, `${setting.label} 관내전보 학교관리자취합용(${FAMILY_LABELS[family]})`.trim(), { bold: true, size: 15, left: true, box: false });
+            put(1, 1, `${setting.label} 관내전보 학교관리자취합용(${FAMILY_LABELS[family]})`.trim(), { bold: true, size: 22, left: true, box: false });
             put(2, 1, `${setting.principal}  ·  내신자 ${list.length}명`, { left: true, box: false });
             put(3, 1, "파란 글자를 누르면 그 시트로 갑니다. 명부·자료 시트는 왼쪽 위, 조사서 시트는 오른쪽 위의 '← 목차'를 누르면 여기로 돌아옵니다.", { left: true, box: false });
-            sheet.getRow(1).height = 28;
             let row = 5;
             put(row++, 1, '명부 9종', { bold: true, left: true, box: false });
             put(row, 1, '순', { head: true, bold: true }); put(row, 2, '교사 구분', { head: true, bold: true }); put(row, 3, '내신자', { head: true, bold: true });
